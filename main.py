@@ -65,7 +65,7 @@ def main():
     X_import = data_gabungan[['Import YOR_scaled', 'Total Teus_scaled']] 
     y_import = data_gabungan['Import YOR']
     X_train_import, X_test_import, y_train_import, y_test_import = train_test_split(
-        X_import, y_import, test_size=0.2, random_state=42
+        X_import, y_import, test_size=0.1, random_state=42
     )
 
     X_export = data_gabungan[['Export YOR_scaled', 'Total Teus_scaled']] 
