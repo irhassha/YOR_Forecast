@@ -66,16 +66,6 @@ def main():
 st.write(f"X_import: {X_import.shape}, y_import: {y_import.shape}")
 st.write(f"X_export: {X_export.shape}, y_export: {y_export.shape}")
 
-# Periksa jika ada NaN
-st.write("Cek NaN pada X_import:")
-st.write(X_import.isnull().sum())
-st.write("Cek NaN pada y_import:")
-st.write(y_import.isnull().sum())
-st.write("Cek NaN pada X_export:")
-st.write(X_export.isnull().sum())
-st.write("Cek NaN pada y_export:")
-st.write(y_export.isnull().sum())
-
     
     # --- Pembagian Data (Import dan Export terpisah) ---
     X_import = data_gabungan[['Import YOR_scaled', 'Total Teus_scaled']] 
