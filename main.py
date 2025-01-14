@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression  # Contoh model
+from sklearn.metrics import mean_absolute_error, mean_squared_error  # Contoh metrik evaluasi
 import os
 
 def main():
@@ -31,8 +32,9 @@ def main():
     scaler_export = MinMaxScaler()
     data_yor['Export YOR_scaled'] = scaler_export.fit_transform(data_yor[['Export YOR']])
 
+    # Scaling untuk kolom 'Total Teus' di data_kapal
     scaler_kapal = StandardScaler()
-    data_kapal['Total_scaled'] = scaler_kapal.fit_transform(data_kapal[['Total']])  # Ganti 'Total' dengan nama kolom yang sesuai
+    data_kapal['Total Teus_scaled'] = scaler_kapal.fit_transform(data_kapal[['Total Teus']]) 
 
     # Encoding (jika ada kolom kategorikal di data_kapal)
     # data_kapal = pd.get_dummies(data_kapal, columns=['Nama Kolom Kategorikal'])
@@ -60,13 +62,13 @@ def main():
     st.write(data_gabungan.corr())
 
     # --- Pembagian Data (Import dan Export terpisah) ---
-    X_import = data_gabungan[['Import YOR_scaled', 'Total_scaled']] 
+    X_import = data_gabungan[['Import YOR_scaled', 'Total Teus_scaled']] 
     y_import = data_gabungan['Import YOR']
     X_train_import, X_test_import, y_train_import, y_test_import = train_test_split(
         X_import, y_import, test_size=0.2, random_state=42
     )
 
-    X_export = data_gabungan[['Export YOR_scaled', 'Total_scaled']] 
+    X_export = data_gabungan[['Export YOR_scaled', 'Total Teus_scaled']] 
     y_export = data_gabungan['Export YOR']
     X_train_export, X_test_export, y_train_export, y_test_export = train_test_split(
         X_export, y_export, test_size=0.2, random_state=42
@@ -82,8 +84,25 @@ def main():
     model_export = LinearRegression()
     model_export.fit(X_train_export, y_train_export)
 
-    # --- Evaluasi dan Prediksi ---
-    # ... (Tambahkan kode untuk evaluasi dan prediksi di sini) ...
+    # --- Evaluasi ---
+    st.subheader('Evaluasi Model')
+    # Prediksi pada data uji
+    y_pred_import = model_import.predict(X_test_import)
+    y_pred_export = model_export.predict(X_test_export)
+
+    # Menghitung MAE dan RMSE
+    mae_import = mean_absolute_error(y_test_import, y_pred_import)
+    rmse_import = np.sqrt(mean_squared_error(y_test_import, y_pred_import))
+    mae_export = mean_absolute_error(y_test_export, y_pred_export)
+    rmse_export = np.sqrt(mean_squared_error(y_test_export, y_pred_export))
+
+    st.write(f'MAE Import: {mae_import:.4f}')
+    st.write(f'RMSE Import: {rmse_import:.4f}')
+    st.write(f'MAE Export: {mae_export:.4f}')
+    st.write(f'RMSE Export: {rmse_export:.4f}')
+
+    # --- Prediksi ---
+    # ... (Tambahkan kode untuk prediksi di sini) ...
 
 if __name__ == '__main__':
     main()
