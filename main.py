@@ -10,7 +10,7 @@ st.title('Yard Occupancy Ratio Forecast')
 
 # --- Membaca Data ---
 data_yor = pd.read_excel('data/data_yor.xlsx', sheet_name='YOR')
-data_kapal = pd.read_excel('data/data_kapal.xlsx', sheet_name='data_kapal')
+data_kapal = pd.read_excel('data/data_kapal.xlsx', sheet_name='Data_kapal')
 
 # --- Data Cleaning dan Preprocessing ---
 # ... (kode yang sama seperti sebelumnya)
