@@ -61,23 +61,17 @@ def main():
     st.subheader('Korelasi')
     st.write(data_gabungan.corr())
 
-#check NaN
-    st.write('Jumlah data sebelum pembagian:')
-st.write(f"X_import: {X_import.shape}, y_import: {y_import.shape}")
-st.write(f"X_export: {X_export.shape}, y_export: {y_export.shape}")
-
-    
     # --- Pembagian Data (Import dan Export terpisah) ---
     X_import = data_gabungan[['Import YOR_scaled', 'Total Teus_scaled']] 
     y_import = data_gabungan['Import YOR']
     X_train_import, X_test_import, y_train_import, y_test_import = train_test_split(
-        X_import, y_import, test_size=0.4, random_state=42
+        X_import, y_import, test_size=0.1, random_state=42
     )
 
     X_export = data_gabungan[['Export YOR_scaled', 'Total Teus_scaled']] 
     y_export = data_gabungan['Export YOR']
     X_train_export, X_test_export, y_train_export, y_test_export = train_test_split(
-        X_export, y_export, test_size=0.4, random_state=42
+        X_export, y_export, test_size=0.1, random_state=42
     )
 
     # --- Pemodelan (Contoh dengan Linear Regression) ---
