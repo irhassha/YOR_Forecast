@@ -2,125 +2,95 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_squared_error
 
-def main():
-    # --- Judul Aplikasi ---
-    st.title('Yard Occupancy Ratio Forecast')
+# Title of the app
+st.title("Yard Occupancy Ratio (YOR) Prediction")
 
-    # --- Data Dummy ---
-    np.random.seed(42)  # Untuk reproducibility
-    n_samples = 100  # Jumlah sampel data
-    dates = pd.date_range('2023-01-01', periods=n_samples)
-    data_yor = pd.DataFrame({
-        'Date': dates,
-        'Import YOR': np.random.rand(n_samples) * 0.6,  # Import YOR antara 0-60%
-        'Export YOR': np.random.rand(n_samples) * 0.8  # Export YOR antara 0-80%
-    })
-    data_kapal = pd.DataFrame({
-        'Date': dates,
-        'Total Teus': np.random.randint(500, 3000, size=n_samples)  # Total Teus antara 500-3000
-    })
+# Step 1: Input Data
+st.header("1. Masukkan Data Historis")
 
-    # --- Data Preprocessing ---
-    # Scaling (Import dan Export terpisah)
-    scaler_import = MinMaxScaler()
-    data_yor['Import YOR_scaled'] = scaler_import.fit_transform(data_yor[['Import YOR']])
+# Sample input fields for historical data
+arrival_rate = st.number_input("Masukkan rata-rata kedatangan kontainer per hari:", min_value=0, value=50)
+departure_rate = st.number_input("Masukkan rata-rata keberangkatan kontainer per hari:", min_value=0, value=40)
+yard_capacity = st.number_input("Masukkan kapasitas yard (jumlah total kontainer yang dapat ditampung):", min_value=0, value=500)
 
-    scaler_export = MinMaxScaler()
-    data_yor['Export YOR_scaled'] = scaler_export.fit_transform(data_yor[['Export YOR']])
+# Step 2: Input Time Period for Prediction
+st.header("2. Pilih Periode Waktu Prediksi")
 
-    # Scaling untuk kolom 'Total Teus' di data_kapal
-    scaler_kapal = StandardScaler()
-    data_kapal['Total Teus_scaled'] = scaler_kapal.fit_transform(data_kapal[['Total Teus']]) 
+# Input for number of days for prediction
+days_to_predict = st.number_input("Pilih jumlah hari untuk prediksi YOR:", min_value=1, value=30)
 
-    # Encoding (jika ada kolom kategorikal di data_kapal)
-    # data_kapal = pd.get_dummies(data_kapal, columns=['Nama Kolom Kategorikal'])
+# Step 3: Model Choice
+st.header("3. Pilih Model Prediksi")
 
-    # Feature Engineering
-    data_gabungan = pd.merge(data_yor, data_kapal, on='Date')
+# Radio button for model selection
+model_choice = st.radio("Pilih model untuk prediksi YOR:", ("Regresi Linier", "Model Dummy"))
 
-    # --- Eksplorasi Data ---
-    st.subheader('Analisis Deskriptif')
-    st.write(data_yor.describe())
-    st.write(data_kapal.describe())
+# Step 4: Run Simulation
+st.header("4. Jalankan Prediksi")
 
-    st.subheader('Visualisasi Data')
-    fig, ax = plt.subplots()
-    ax.plot(data_yor['Date'], data_yor['Import YOR'], label='Import YOR')
-    ax.plot(data_yor['Date'], data_yor['Export YOR'], label='Export YOR')
-    ax.set_xlabel('Tanggal')
-    ax.set_ylabel('YOR')
-    ax.set_title('Tren YOR')
-    ax.legend()
-    st.pyplot(fig)
-
-    # --- Korelasi ---
-    st.subheader('Korelasi')
-    st.write(data_gabungan.corr())
-
-    # --- Pembagian Data (Import dan Export terpisah) ---
-    X_import = data_gabungan[['Import YOR_scaled', 'Total Teus_scaled']] 
-    y_import = data_gabungan['Import YOR']
-    X_train_import, X_test_import, y_train_import, y_test_import = train_test_split(
-        X_import, y_import, test_size=0.2, random_state=42
-    )
-
-    X_export = data_gabungan[['Export YOR_scaled', 'Total Teus_scaled']] 
-    y_export = data_gabungan['Export YOR']
-    X_train_export, X_test_export, y_train_export, y_test_export = train_test_split(
-        X_export, y_export, test_size=0.2, random_state=42
-    )
-
-    # --- Pemodelan (Contoh dengan Linear Regression) ---
-    st.subheader('Pemodelan')
-    # Model Import
-    model_import = LinearRegression()
-    model_import.fit(X_train_import, y_train_import)
-
-    # Model Export
-    model_export = LinearRegression()
-    model_export.fit(X_train_export, y_train_export)
-
-    # --- Evaluasi ---
-    st.subheader('Evaluasi Model')
-    # Prediksi pada data uji
-    y_pred_import = model_import.predict(X_test_import)
-    y_pred_export = model_export.predict(X_test_export)
-
-    # Menghitung MAE dan RMSE
-    mae_import = mean_absolute_error(y_test_import, y_pred_import)
-    rmse_import = np.sqrt(mean_squared_error(y_test_import, y_pred_import))
-    mae_export = mean_absolute_error(y_test_export, y_pred_export)
-    rmse_export = np.sqrt(mean_squared_error(y_test_export, y_pred_export))
-
-    st.write(f'MAE Import: {mae_import:.4f}')
-    st.write(f'RMSE Import: {rmse_import:.4f}')
-    st.write(f'MAE Export: {mae_export:.4f}')
-    st.write(f'RMSE Export: {rmse_export:.4f}')
-
-    # --- Prediksi ---
-    st.subheader('Prediksi YOR')
-
-    # Input Total Teus untuk minggu depan
-    total_teus_minggu_depan = st.number_input('Masukkan Total Teus minggu depan:', min_value=0)
-
-    # Buat DataFrame untuk input prediksi
-    data_prediksi = pd.DataFrame({
-        'Total Teus_scaled': scaler_kapal.transform([[total_teus_minggu_depan]])
+# Simulate prediction based on model choice
+if model_choice == "Regresi Linier":
+    # Create dummy historical data for training
+    # Randomly generate arrival and departure rates
+    historical_data = pd.DataFrame({
+        'Arrival Rate': np.random.randint(40, 60, 100),
+        'Departure Rate': np.random.randint(30, 50, 100),
+        'Yard Occupancy Ratio': np.random.uniform(0.3, 0.9, 100)
     })
 
-    # Prediksi Import YOR
-    import_yor_pred = model_import.predict(data_prediksi)
+    # Define features and target
+    X = historical_data[['Arrival Rate', 'Departure Rate']]
+    y = historical_data['Yard Occupancy Ratio']
 
-    # Prediksi Export YOR
-    export_yor_pred = model_export.predict(data_prediksi)
+    # Train a simple linear regression model
+    model = LinearRegression()
+    model.fit(X, y)
 
-    st.write(f'Prediksi Import YOR minggu depan: {import_yor_pred[0]:.4f}')
-    st.write(f'Prediksi Export YOR minggu depan: {export_yor_pred[0]:.4f}')
+    # Make prediction based on user input
+    input_data = pd.DataFrame({
+        'Arrival Rate': [arrival_rate],
+        'Departure Rate': [departure_rate]
+    })
 
-if __name__ == '__main__':
-    main()
+    predicted_yor = model.predict(input_data)[0]
+
+    # Display result
+    st.write(f"Prediksi Yard Occupancy Ratio (YOR) untuk {days_to_predict} hari ke depan adalah: {predicted_yor:.2f}")
+
+    # Generate and display estimation plot
+    st.subheader("Ilustrasi Grafik Estimasi YOR")
+    plt.figure(figsize=(8, 6))
+
+    # Estimasi berdasarkan input pengguna
+    estimated_yor = predicted_yor * np.ones(days_to_predict)
+
+    plt.plot(range(1, days_to_predict + 1), estimated_yor, label='Prediksi YOR', color='blue', linestyle='--')
+    plt.xlabel("Hari")
+    plt.ylabel("Yard Occupancy Ratio")
+    plt.title("Estimasi Yard Occupancy Ratio (YOR) untuk 30 Hari Ke Depan")
+    plt.legend()
+    st.pyplot()
+
+    # Calculate MSE for model evaluation
+    mse = mean_squared_error(y, model.predict(X))
+    st.write(f"Mean Squared Error (MSE) model: {mse:.2f}")
+
+else:
+    st.write("Model dummy: Hasil prediksi YOR hanya berdasarkan nilai rata-rata historis.")
+    st.write(f"Prediksi YOR: {(arrival_rate - departure_rate) / yard_capacity:.2f}")
+
+# Step 5: Export Results
+st.header("5. Ekspor Hasil Prediksi")
+
+# Provide export option
+if st.button("Export Hasil Prediksi"):
+    result = {
+        "Hari untuk Prediksi": days_to_predict,
+        "Prediksi YOR": predicted_yor if model_choice == "Regresi Linier" else (arrival_rate - departure_rate) / yard_capacity
+    }
+    df_result = pd.DataFrame([result])
+    df_result.to_csv("prediksi_yor.csv", index=False)
+    st.write("Hasil telah diekspor ke 'prediksi_yor.csv'.")
