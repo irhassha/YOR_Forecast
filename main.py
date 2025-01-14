@@ -103,7 +103,24 @@ def main():
     st.write(f'RMSE Export: {rmse_export:.4f}')
 
     # --- Prediksi ---
-    # ... (Tambahkan kode untuk prediksi di sini) ...
+    st.subheader('Prediksi YOR')
+
+    # Input Total Teus untuk minggu depan
+    total_teus_minggu_depan = st.number_input('Masukkan Total Teus minggu depan:', min_value=0)
+
+    # Buat DataFrame untuk input prediksi
+    data_prediksi = pd.DataFrame({
+        'Total Teus_scaled': scaler_kapal.transform([[total_teus_minggu_depan]])
+    })
+
+    # Prediksi Import YOR
+    import_yor_pred = model_import.predict(data_prediksi)
+
+    # Prediksi Export YOR
+    export_yor_pred = model_export.predict(data_prediksi)
+
+    st.write(f'Prediksi Import YOR minggu depan: {import_yor_pred[0]:.4f}')
+    st.write(f'Prediksi Export YOR minggu depan: {export_yor_pred[0]:.4f}')
 
 if __name__ == '__main__':
     main()
