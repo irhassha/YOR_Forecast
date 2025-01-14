@@ -71,7 +71,7 @@ def main():
     X_export = data_gabungan[['Export YOR_scaled', 'Total Teus_scaled']] 
     y_export = data_gabungan['Export YOR']
     X_train_export, X_test_export, y_train_export, y_test_export = train_test_split(
-        X_export, y_export, test_size=0.2, random_state=42
+        X_export, y_export, test_size=0.1, random_state=42
     )
 
     # --- Pemodelan (Contoh dengan Linear Regression) ---
