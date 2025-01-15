@@ -12,7 +12,7 @@ data_service = {
     "service": ["Service " + str(i + 1) for i in range(10)],
     "kapal_per_minggu": [2, 1, 3, 2, 1, 2, 1, 3, 2, 1],
     "kapasitas_kapal": [500, 1000, 300, 400, 800, 500, 700, 300, 400, 900],
-    "persen_impor":,
+    "persen_impor": [0.6, 0.7, 0.5, 0.8, 0.4, 0.6, 0.7, 0.5, 0.8, 0.4],
 }
 df_service = pd.DataFrame(data_service)
 
