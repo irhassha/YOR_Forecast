@@ -22,15 +22,13 @@ rata_rata_ekspor_truk = 150
 std_ekspor_truk = 30
 
 # --- Fungsi untuk Menghasilkan Data Simulasi ---
-
-
 def generate_data_simulasi(df_service, skenario, n_hari):
     df = df_service.copy()
 
     # Simulasi jumlah kapal per service (distribusi Poisson)
     df['jumlah_kapal'] = df['kapal_per_minggu'].apply(
         lambda x: np.random.poisson(x * (n_hari // 7))
-    )  # disesuaikan dengan jumlah hari
+    )
 
     # Simulasi delay kapal (distribusi uniform antara 0-2 hari)
     if skenario == 2:  # Hanya untuk skenario delay
@@ -38,12 +36,30 @@ def generate_data_simulasi(df_service, skenario, n_hari):
     else:
         df['delay'] = 0
 
+    # --- Skenario 3: Kapal Susulan ---
+    if skenario == 3:
+        # Contoh: Tambahkan 1 kapal susulan untuk service 1 dan 3
+        df.loc[[0, 2], 'jumlah_kapal'] += 1
+
+    # --- Skenario 4: Kapal Tambahan ---
+    if skenario == 4:
+        # Contoh: Tambahkan 2 kapal baru dengan data acak
+        new_kapal = pd.DataFrame({
+            'service': ['Service 11', 'Service 12'],
+            'kapal_per_minggu': [1, 1],
+            'kapasitas_kapal': np.random.randint(300, 1000, size=2),
+            'persen_impor': np.random.rand(2),
+            'jumlah_kapal': [1, 1],
+            'delay': 0
+        })
+        df = pd.concat([df, new_kapal], ignore_index=True)
+
     # Simulasi jumlah container per kapal (distribusi normal)
     df['jumlah_container'] = df.apply(
         lambda row: np.random.normal(
             row['kapasitas_kapal'], row['kapasitas_kapal'] * 0.1
         ) * row['jumlah_kapal'],
-        axis=1,
+        axis=1
     )
 
     # Hitung jumlah container ekspor dan impor
@@ -92,6 +108,17 @@ n_simulasi = st.number_input(
 
 # Input jumlah hari
 n_hari = st.number_input("Jumlah Hari Prediksi", min_value=1, value=7, step=1)
+
+# Pilihan skenario
+skenario = st.selectbox(
+    "Pilih Skenario",
+    [
+        "1. Kapal-kapal datang sesuai dengan windownya",
+        "2. Jika terjadi delay di beberapa service kapal",
+        "3. Jika dalam satu minggu ada 2 service kapal yang sama dikarenakan kapal di minggu sebelumnya delay",
+        "4. Jika ada penambahan kapal diluar service yang 10 tadi",
+    ],
+)
 
 # Mapping skenario
 skenario_mapping = {
