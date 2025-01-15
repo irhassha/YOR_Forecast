@@ -86,40 +86,29 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(status_kapal="ACTIVE"):  # Tambahkan parameter status_kapal
+def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima list status
     # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
-
-    # --- Pilihan Status Kapal ---
-st.subheader("Pilihan Status Kapal")
-status_kapal = st.selectbox("Pilih status kapal:", ("EXPECTED", "BERTHING"))
-
-# --- Ambil Data Kapal ---
-if upload_choice == "Ambil dari Website":
-    with st.spinner("Mengambil data kapal dari website..."):
-        df_kapal = ambil_data_kapal_website(status_kapal)  # Gunakan filter status
-
 
     # Mengambil kode HTML website
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
 
     # Mencari tabel jadwal kapal
-    table = soup.find("table")  # Tidak ada ID atau class khusus pada tabel
-
-    # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
-    data = []
+    table = soup.find("table")
 
     # Mencari baris header untuk mendapatkan indeks kolom status
     header_row = table.find("tr")
     headers = [th.text.strip() for th in header_row.find_all("th")]
     status_index = headers.index("Status")  # Mendapatkan indeks kolom "Status"
 
+    # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
+    data = []
     for row in table.find_all("tr")[1:]:  # Skip baris header
         columns = row.find_all("td")
 
-        # Periksa status kapal sebelum menambahkan data
-        if columns[status_index].text.strip() == status_kapal:  
+        # Periksa apakah status kapal ada dalam list status_kapal
+        if columns[status_index].text.strip() in status_kapal:  
             data.append(
                 {
                     "Vessel Name": columns[0].text.strip(),
@@ -157,7 +146,7 @@ if upload_choice == "Upload dari Excel":
         st.stop()  # Hentikan eksekusi jika tidak ada file yang diupload
 elif upload_choice == "Ambil dari Website":
     with st.spinner("Mengambil data kapal dari website..."):
-        df_kapal = ambil_data_kapal_website()
+        df_kapal = ambil_data_kapal_website()  # Tidak perlu parameter status
 
 # --- Menampilkan Data Kapal ---
 st.write("Data Kapal:")
