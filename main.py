@@ -107,12 +107,8 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima lis
         data.append(
             {
                 "Vessel Name": columns[0].text.strip(),
-                "Voyage No": columns[1].text.strip(),
-                "Service": columns[2].text.strip(),
-                "ETA": columns[3].text.strip(),
-                "ETD": columns[4].text.strip(),
-                "Berthing Date": columns[5].text.strip(),
-                "Closing Date": columns[6].text.strip(),
+                "Service": columns[1].text.strip(),
+                "ETA": columns[2].text.strip(),
             }
         )
 
