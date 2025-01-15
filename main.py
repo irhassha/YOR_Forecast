@@ -57,18 +57,22 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
             rata_rata_impor_truk = 200  # Nilai default jika tanggal tidak ditemukan
 
         # Hitung total container ekspor dan impor HARIAN
-        total_impor =  yard_occupancy_impor[hari - 1] + rata_rata_impor_truk  # Tambah dulu dari truk
+        total_impor =  yard_occupancy_impor[hari - 1] + rata_rata_impor_truk  
         total_ekspor = yard_occupancy_ekspor[hari - 1] + rata_rata_ekspor_truk
 
         # Akumulasi container dari kapal yang datang
         for index, row in df.iterrows():
-            # Gunakan 'lama sandar' yang dihitung dari data kapal
             if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
                 total_impor += row["jumlah bongkar"] / row["lama sandar"]
-                total_ekspor += row["jumlah muat"] / row["lama sandar"]
+                total_ekspor += row["jumlah muat"] / row["lama sandar"]  # Tambah dulu dari kapal
 
         # Kurangi total_impor dengan jumlah kontainer yang dibawa truk impor
-        total_impor -= rata_rata_impor_truk
+        total_impor -= rata_rata_impor_truk  
+
+        # Kurangi total_ekspor dengan jumlah kontainer yang dimuat ke kapal (ekspor)
+        for index, row in df.iterrows():
+            if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
+                total_ekspor -= row["jumlah muat"] / row["lama sandar"]
 
         yard_occupancy_impor[hari] = total_impor
         yard_occupancy_ekspor[hari] = total_ekspor
@@ -230,6 +234,32 @@ if uploaded_file is not None and uploaded_file_truk is not None:
 
         # Menampilkan DataFrame
         st.dataframe(df_output.T)  # transpose agar mudah dibaca
+
+
+        # --- Tabel Bongkar Muat per Hari ---
+        st.subheader("Tabel Bongkar Muat per Hari")
+
+        # Inisialisasi DataFrame untuk tabel bongkar muat
+        df_bongkar_muat = pd.DataFrame(columns=['Tanggal', 'Total Bongkar (TEU)', 'Total Muat (TEU)'])
+
+        for hari in range(1, n_hari):
+            tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%Y-%m-%d")
+            total_bongkar = 0
+            total_muat = 0
+
+            for index, row in df.iterrows():
+                if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
+                    total_bongkar += row["jumlah bongkar"] / row["lama sandar"]
+                    total_muat += row["jumlah muat"] / row["lama sandar"]
+
+            # Tambahkan data ke DataFrame
+            df_bongkar_muat = df_bongkar_muat.append({
+                'Tanggal': tanggal_hari, 
+                'Total Bongkar (TEU)': total_bongkar, 
+                'Total Muat (TEU)': total_muat
+            }, ignore_index=True)
+
+        st.dataframe(df_bongkar_muat)
 
 else:
     st.warning("Silakan upload data kapal dan data truk terlebih dahulu.")
