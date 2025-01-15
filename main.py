@@ -252,14 +252,14 @@ if uploaded_file is not None and uploaded_file_truk is not None:
                     total_bongkar += row["jumlah bongkar"] / row["lama sandar"]
                     total_muat += row["jumlah muat"] / row["lama sandar"]
 
-            # Tambahkan data ke DataFrame
-          df_bongkar_muat.loc[len(df_bongkar_muat)] = {
-                'Tanggal': tanggal_hari, 
-                'Total Bongkar (TEU)': total_bongkar, 
-                'Total Muat (TEU)': total_muat
-            }, ignore_index=True)
+           # Tambahkan data ke DataFrame menggunakan .loc
+        df_bongkar_muat.loc[len(df_bongkar_muat)] = {
+            'Tanggal': tanggal_hari, 
+            'Total Bongkar (TEU)': total_bongkar, 
+            'Total Muat (TEU)': total_muat
+        }
 
-        st.dataframe(df_bongkar_muat)
+    st.dataframe(df_bongkar_muat)
 
 else:
     st.warning("Silakan upload data kapal dan data truk terlebih dahulu.")
