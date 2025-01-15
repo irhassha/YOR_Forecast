@@ -98,7 +98,9 @@ def hitung_yard_occupancy(
         ekspor_truk = np.random.normal(rata_rata_ekspor_truk, std_ekspor_truk)
 
         # Hitung total container ekspor dan impor HARIAN
-        total_impor = impor_truk + yard_occupancy_impor[hari - 1]  # tambahkan existing container
+        total_impor = (
+            impor_truk + yard_occupancy_impor[hari - 1]
+        )  # tambahkan existing container
         total_ekspor = ekspor_truk + yard_occupancy_ekspor[hari - 1]
 
         # Akumulasi container dari kapal yang datang
@@ -222,7 +224,10 @@ if st.button("Jalankan Simulasi"):
     # Set x-ticks to represent dates starting from tomorrow
     ax.set_xticks(range(1, n_hari + 1))
     ax.set_xticklabels(
-        [(date.today() + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, n_hari + 1)],
+        [
+            (date.today() + timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(1, n_hari + 1)
+        ],
         rotation=45,
     )
 
@@ -231,9 +236,18 @@ if st.button("Jalankan Simulasi"):
     # --- Output ---
     st.subheader("Output")
 
-    st.write("Rata-rata Yard Occupancy per Hari:")
-    st.write("Ekspor:", rata_rata_ekspor)
-    st.write("Impor:", rata_rata_impor)
+    # Membuat DataFrame untuk output
+    tanggal = [(date.today() + timedelta(days=i)) for i in range(1, n_hari + 1)]
+    df_output = pd.DataFrame(
+        {
+            "Tanggal": tanggal,
+            "Rata-rata Ekspor (TEU)": rata_rata_ekspor,
+            "Rata-rata Impor (TEU)": rata_rata_impor,
+        }
+    )
+
+    # Menampilkan DataFrame
+    st.dataframe(df_output.T)  # transpose agar tanggal ditampilkan menyamping
 
     st.write("\nDeviasi Standar Yard Occupancy per Hari:")
     st.write("Ekspor:", std_ekspor)
