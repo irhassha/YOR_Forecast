@@ -1,96 +1,108 @@
-import streamlit as st
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
 
-# Title of the app
-st.title("Yard Occupancy Ratio (YOR) Prediction")
+# --- Data Dummy ---
+kapasitas_yard = 5000  # TEU
 
-# Step 1: Input Data
-st.header("1. Masukkan Data Historis")
+# Data service kapal window
+data_service = {
+    'service': ['Service ' + str(i+1) for i in range(10)],
+    'kapal_per_minggu': [2, 1, 3, 2, 1, 2, 1, 3, 2, 1],
+    'kapasitas_kapal': [500, 1000, 300, 400, 800, 500, 700, 300, 400, 900],
+    'persen_impor': [0.6, 0.7, 0.5, 0.8, 0.4, 0.6, 0.7, 0.5, 0.8, 0.4],
+}
+df_service = pd.DataFrame(data_service)
 
-# Sample input fields for historical data
-arrival_rate = st.number_input("Masukkan rata-rata kedatangan kontainer per hari:", min_value=0, value=50)
-departure_rate = st.number_input("Masukkan rata-rata keberangkatan kontainer per hari:", min_value=0, value=40)
-yard_capacity = st.number_input("Masukkan kapasitas yard (jumlah total kontainer yang dapat ditampung):", min_value=0, value=500)
+# Tren ekspor-impor truk
+rata_rata_impor_truk = 200
+std_impor_truk = 50
+rata_rata_ekspor_truk = 150
+std_ekspor_truk = 30
 
-# Step 2: Input Time Period for Prediction
-st.header("2. Pilih Periode Waktu Prediksi")
+# --- Fungsi untuk Menghasilkan Data Simulasi ---
+def generate_data_simulasi(df_service, skenario):
+    df = df_service.copy()
 
-# Input for number of days for prediction
-days_to_predict = st.number_input("Pilih jumlah hari untuk prediksi YOR:", min_value=1, value=30)
+    # Simulasi jumlah kapal per service (distribusi Poisson)
+    df['jumlah_kapal'] = df['kapal_per_minggu'].apply(
+        lambda x: np.random.poisson(x)
+    )
 
-# Step 3: Model Choice
-st.header("3. Pilih Model Prediksi")
+    # Simulasi delay kapal (distribusi uniform antara 0-2 hari)
+    if skenario == 2:  # Hanya untuk skenario delay
+        df['delay'] = np.random.uniform(0, 2, size=len(df))
+    else:
+        df['delay'] = 0
 
-# Radio button for model selection
-model_choice = st.radio("Pilih model untuk prediksi YOR:", ("Regresi Linier", "Model Dummy"))
+    # Simulasi jumlah container per kapal (distribusi normal)
+    df['jumlah_container'] = df.apply(
+        lambda row: np.random.normal(
+            row['kapasitas_kapal'], row['kapasitas_kapal'] * 0.1
+        ) * row['jumlah_kapal'],
+        axis=1
+    )
 
-# Step 4: Run Simulation
-st.header("4. Jalankan Prediksi")
+    # Hitung jumlah container ekspor dan impor
+    df['container_impor'] = df['jumlah_container'] * df['persen_impor']
+    df['container_ekspor'] = df['jumlah_container'] * (1 - df['persen_impor'])
 
-# Simulate prediction based on model choice
-if model_choice == "Regresi Linier":
-    # Create dummy historical data for training
-    # Randomly generate arrival and departure rates
-    historical_data = pd.DataFrame({
-        'Arrival Rate': np.random.randint(40, 60, 100),
-        'Departure Rate': np.random.randint(30, 50, 100),
-        'Yard Occupancy Ratio': np.random.uniform(0.3, 0.9, 100)
-    })
+    return df
 
-    # Define features and target
-    X = historical_data[['Arrival Rate', 'Departure Rate']]
-    y = historical_data['Yard Occupancy Ratio']
+# --- Fungsi untuk Menghitung Yard Occupancy ---
+def hitung_yard_occupancy(df, rata_rata_impor_truk, std_impor_truk,
+                          rata_rata_ekspor_truk, std_ekspor_truk):
+    # Simulasi tren ekspor-impor truk (distribusi normal)
+    impor_truk = np.random.normal(rata_rata_impor_truk, std_impor_truk)
+    ekspor_truk = np.random.normal(rata_rata_ekspor_truk, std_ekspor_truk)
 
-    # Train a simple linear regression model
-    model = LinearRegression()
-    model.fit(X, y)
+    # Hitung total container ekspor dan impor
+    total_impor = df['container_impor'].sum() + impor_truk
+    total_ekspor = df['container_ekspor'].sum() + ekspor_truk
 
-    # Make prediction based on user input
-    input_data = pd.DataFrame({
-        'Arrival Rate': [arrival_rate],
-        'Departure Rate': [departure_rate]
-    })
+    return total_impor, total_ekspor
 
-    predicted_yor = model.predict(input_data)[0]
+# --- Simulasi Monte Carlo ---
+n_simulasi = 1000  # Jumlah simulasi
 
-    # Display result
-    st.write(f"Prediksi Yard Occupancy Ratio (YOR) untuk {days_to_predict} hari ke depan adalah: {predicted_yor:.2f}")
+# Inisialisasi array untuk menyimpan hasil simulasi
+hasil_simulasi = np.zeros((n_simulasi, 4, 2))  # 4 skenario, 2 output (ekspor, impor)
 
-    # Generate and display estimation plot
-    st.subheader("Ilustrasi Grafik Estimasi YOR")
-    plt.figure(figsize=(8, 6))
+for i in range(n_simulasi):
+    for j, skenario in enumerate([1, 2, 3, 4]):
+        # Generate data simulasi
+        df = generate_data_simulasi(df_service, skenario)
 
-    # Estimasi berdasarkan input pengguna
-    estimated_yor = predicted_yor * np.ones(days_to_predict)
+        # Hitung yard occupancy
+        impor, ekspor = hitung_yard_occupancy(
+            df, rata_rata_impor_truk, std_impor_truk,
+            rata_rata_ekspor_truk, std_ekspor_truk
+        )
 
-    plt.plot(range(1, days_to_predict + 1), estimated_yor, label='Prediksi YOR', color='blue', linestyle='--')
-    plt.xlabel("Hari")
-    plt.ylabel("Yard Occupancy Ratio")
-    plt.title("Estimasi Yard Occupancy Ratio (YOR) untuk 30 Hari Ke Depan")
-    plt.legend()
-    st.pyplot()
+        hasil_simulasi[i, j, 0] = ekspor
+        hasil_simulasi[i, j, 1] = impor
 
-    # Calculate MSE for model evaluation
-    mse = mean_squared_error(y, model.predict(X))
-    st.write(f"Mean Squared Error (MSE) model: {mse:.2f}")
+# --- Analisis Hasil ---
+# Hitung statistik deskriptif (rata-rata, deviasi standar)
+rata_rata_simulasi = np.mean(hasil_simulasi, axis=0)
+std_simulasi = np.std(hasil_simulasi, axis=0)
 
-else:
-    st.write("Model dummy: Hasil prediksi YOR hanya berdasarkan nilai rata-rata historis.")
-    st.write(f"Prediksi YOR: {(arrival_rate - departure_rate) / yard_capacity:.2f}")
+# --- Visualisasi ---
+# Contoh: Visualisasi yard occupancy ekspor untuk setiap skenario
+plt.figure(figsize=(10, 6))
+for j, skenario in enumerate([1, 2, 3, 4]):
+    plt.hist(hasil_simulasi[:, j, 0], bins=20, alpha=0.5,
+             label=f'Skenario {skenario}')
+plt.xlabel('Yard Occupancy Ekspor (TEU)')
+plt.ylabel('Frekuensi')
+plt.title('Distribusi Yard Occupancy Ekspor untuk Setiap Skenario')
+plt.legend()
+plt.show()
 
-# Step 5: Export Results
-st.header("5. Ekspor Hasil Prediksi")
+# --- Output ---
+print('Rata-rata Yard Occupancy:')
+print(rata_rata_simulasi)
 
-# Provide export option
-if st.button("Export Hasil Prediksi"):
-    result = {
-        "Hari untuk Prediksi": days_to_predict,
-        "Prediksi YOR": predicted_yor if model_choice == "Regresi Linier" else (arrival_rate - departure_rate) / yard_capacity
-    }
-    df_result = pd.DataFrame([result])
-    df_result.to_csv("prediksi_yor.csv", index=False)
-    st.write("Hasil telah diekspor ke 'prediksi_yor.csv'.")
+print('\nDeviasi Standar Yard Occupancy:')
+print(std_simulasi)
