@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
+import streamlit as st
 import matplotlib.pyplot as plt
 
 # --- Data Dummy ---
@@ -63,46 +64,67 @@ def hitung_yard_occupancy(df, rata_rata_impor_truk, std_impor_truk,
 
     return total_impor, total_ekspor
 
-# --- Simulasi Monte Carlo ---
-n_simulasi = 1000  # Jumlah simulasi
+# --- Streamlit App ---
+st.title('Prediksi Yard Occupancy')
 
-# Inisialisasi array untuk menyimpan hasil simulasi
-hasil_simulasi = np.zeros((n_simulasi, 4, 2))  # 4 skenario, 2 output (ekspor, impor)
+# Input jumlah simulasi
+n_simulasi = st.number_input('Jumlah Simulasi', min_value=100, value=1000, step=100)
 
-for i in range(n_simulasi):
+# Tombol untuk menjalankan simulasi
+if st.button('Jalankan Simulasi'):
+    # Inisialisasi array untuk menyimpan hasil simulasi
+    hasil_simulasi = np.zeros((n_simulasi, 4, 2))
+
+    with st.spinner('Menjalankan simulasi...'):
+        for i in range(n_simulasi):
+            for j, skenario in enumerate([1, 2, 3, 4]):
+                # Generate data simulasi
+                df = generate_data_simulasi(df_service, skenario)
+
+                # Hitung yard occupancy
+                impor, ekspor = hitung_yard_occupancy(
+                    df, rata_rata_impor_truk, std_impor_truk,
+                    rata_rata_ekspor_truk, std_ekspor_truk
+                )
+
+                hasil_simulasi[i, j, 0] = ekspor
+                hasil_simulasi[i, j, 1] = impor
+
+    # --- Analisis Hasil ---
+    # Hitung statistik deskriptif (rata-rata, deviasi standar)
+    rata_rata_simulasi = np.mean(hasil_simulasi, axis=0)
+    std_simulasi = np.std(hasil_simulasi, axis=0)
+
+    # --- Visualisasi ---
+    st.subheader('Visualisasi Hasil')
+
+    # Visualisasi yard occupancy ekspor untuk setiap skenario
+    fig, ax = plt.subplots(figsize=(10, 6))
     for j, skenario in enumerate([1, 2, 3, 4]):
-        # Generate data simulasi
-        df = generate_data_simulasi(df_service, skenario)
+        ax.hist(hasil_simulasi[:, j, 0], bins=20, alpha=0.5,
+                 label=f'Skenario {skenario}')
+    ax.set_xlabel('Yard Occupancy Ekspor (TEU)')
+    ax.set_ylabel('Frekuensi')
+    ax.set_title('Distribusi Yard Occupancy Ekspor untuk Setiap Skenario')
+    ax.legend()
+    st.pyplot(fig)
 
-        # Hitung yard occupancy
-        impor, ekspor = hitung_yard_occupancy(
-            df, rata_rata_impor_truk, std_impor_truk,
-            rata_rata_ekspor_truk, std_ekspor_truk
-        )
+    # Visualisasi yard occupancy impor untuk setiap skenario
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for j, skenario in enumerate([1, 2, 3, 4]):
+        ax.hist(hasil_simulasi[:, j, 1], bins=20, alpha=0.5,
+                 label=f'Skenario {skenario}')
+    ax.set_xlabel('Yard Occupancy Impor (TEU)')
+    ax.set_ylabel('Frekuensi')
+    ax.set_title('Distribusi Yard Occupancy Impor untuk Setiap Skenario')
+    ax.legend()
+    st.pyplot(fig)
 
-        hasil_simulasi[i, j, 0] = ekspor
-        hasil_simulasi[i, j, 1] = impor
+    # --- Output ---
+    st.subheader('Output')
 
-# --- Analisis Hasil ---
-# Hitung statistik deskriptif (rata-rata, deviasi standar)
-rata_rata_simulasi = np.mean(hasil_simulasi, axis=0)
-std_simulasi = np.std(hasil_simulasi, axis=0)
+    st.write('Rata-rata Yard Occupancy:')
+    st.write(rata_rata_simulasi)
 
-# --- Visualisasi ---
-# Contoh: Visualisasi yard occupancy ekspor untuk setiap skenario
-plt.figure(figsize=(10, 6))
-for j, skenario in enumerate([1, 2, 3, 4]):
-    plt.hist(hasil_simulasi[:, j, 0], bins=20, alpha=0.5,
-             label=f'Skenario {skenario}')
-plt.xlabel('Yard Occupancy Ekspor (TEU)')
-plt.ylabel('Frekuensi')
-plt.title('Distribusi Yard Occupancy Ekspor untuk Setiap Skenario')
-plt.legend()
-plt.show()
-
-# --- Output ---
-print('Rata-rata Yard Occupancy:')
-print(rata_rata_simulasi)
-
-print('\nDeviasi Standar Yard Occupancy:')
-print(std_simulasi)
+    st.write('\nDeviasi Standar Yard Occupancy:')
+    st.write(std_simulasi)
