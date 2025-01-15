@@ -57,8 +57,8 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
             rata_rata_impor_truk = 200  # Nilai default jika tanggal tidak ditemukan
 
         # Hitung total container ekspor dan impor HARIAN
-        total_impor = rata_rata_impor_truk + yard_occupancy_impor[hari - 1]
-        total_ekspor = rata_rata_ekspor_truk + yard_occupancy_ekspor[hari - 1]
+        total_impor =  yard_occupancy_impor[hari - 1] + rata_rata_impor_truk  # Tambah dulu dari truk
+        total_ekspor = yard_occupancy_ekspor[hari - 1] + rata_rata_ekspor_truk
 
         # Akumulasi container dari kapal yang datang
         for index, row in df.iterrows():
@@ -66,6 +66,9 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
             if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
                 total_impor += row["jumlah bongkar"] / row["lama sandar"]
                 total_ekspor += row["jumlah muat"] / row["lama sandar"]
+
+        # Kurangi total_impor dengan jumlah kontainer yang dibawa truk impor
+        total_impor -= rata_rata_impor_truk
 
         yard_occupancy_impor[hari] = total_impor
         yard_occupancy_ekspor[hari] = total_ekspor
