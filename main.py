@@ -236,14 +236,18 @@ if st.button("Jalankan Simulasi"):
     # --- Output ---
     st.subheader("Output")
 
-    # Membuat DataFrame untuk output (tanpa kolom tanggal)
+    # Membuat list tanggal
+    tanggal = [(date.today() + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, n_hari + 1)]
+
+    # Membuat DataFrame untuk output
     df_output = pd.DataFrame(
         {
             "Rata-rata Ekspor (TEU)": rata_rata_ekspor,
             "Deviasi Standar Ekspor": std_ekspor,
             "Rata-rata Impor (TEU)": rata_rata_impor,
             "Deviasi Standar Impor": std_impor,
-        }
+        },
+        index=tanggal  # Menggunakan tanggal sebagai index
     )
 
     # Menampilkan DataFrame
