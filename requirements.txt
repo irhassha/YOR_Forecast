@@ -3,3 +3,5 @@ numpy
 matplotlib
 scikit-learn
 openpyxl
+sklearn.linear_model
+LinearRegression
