@@ -242,16 +242,11 @@ if st.button("Jalankan Simulasi"):
         {
             "Tanggal": tanggal,
             "Rata-rata Ekspor (TEU)": rata_rata_ekspor,
+            "Deviasi Standar Ekspor": std_ekspor,
             "Rata-rata Impor (TEU)": rata_rata_impor,
+            "Deviasi Standar Impor": std_impor,
         }
     )
 
     # Menampilkan DataFrame
     st.dataframe(df_output.T)  # transpose agar tanggal ditampilkan menyamping
-
-    # Menampilkan deviasi standar
-    st.write("\nDeviasi Standar Yard Occupancy per Hari:")
-    st.write("Ekspor:")
-    st.write(std_ekspor)  # Menampilkan nilai deviasi standar ekspor
-    st.write("Impor:")
-    st.write(std_impor)  # Menampilkan nilai deviasi standar impor
