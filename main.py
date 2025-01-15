@@ -249,6 +249,9 @@ if st.button("Jalankan Simulasi"):
     # Menampilkan DataFrame
     st.dataframe(df_output.T)  # transpose agar tanggal ditampilkan menyamping
 
+    # Menampilkan deviasi standar
     st.write("\nDeviasi Standar Yard Occupancy per Hari:")
-    st.write("Ekspor:", std_ekspor)
-    st.write("Impor:", std_impor)
+    st.write("Ekspor:")
+    st.write(std_ekspor)  # Menampilkan nilai deviasi standar ekspor
+    st.write("Impor:")
+    st.write(std_impor)  # Menampilkan nilai deviasi standar impor
