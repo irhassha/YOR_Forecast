@@ -86,7 +86,7 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website():
+def ambil_data_kapal_website(status_kapal="ACTIVE", "REGISTERED"):  # Tambahkan parameter status_kapal
     # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
 
@@ -99,19 +99,29 @@ def ambil_data_kapal_website():
 
     # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
     data = []
+
+    # Mencari baris header untuk mendapatkan indeks kolom status
+    header_row = table.find("tr")
+    headers = [th.text.strip() for th in header_row.find_all("th")]
+    status_index = headers.index("Status")  # Mendapatkan indeks kolom "Status"
+
     for row in table.find_all("tr")[1:]:  # Skip baris header
         columns = row.find_all("td")
-        data.append(
-            {
-                "Vessel Name": columns[0].text.strip(),
-                "Voyage No": columns[1].text.strip(),
-                "Service": columns[2].text.strip(),
-                "ETA": columns[3].text.strip(),
-                "ETD": columns[4].text.strip(),
-                "Berthing Date": columns[5].text.strip(),
-                "Closing Date": columns[6].text.strip(),
-            }
-        )
+
+        # Periksa status kapal sebelum menambahkan data
+        if columns[status_index].text.strip() == status_kapal:  
+            data.append(
+                {
+                    "Vessel Name": columns[0].text.strip(),
+                    "Voyage No": columns[1].text.strip(),
+                    "Service": columns[2].text.strip(),
+                    "ETA": columns[3].text.strip(),
+                    "ETD": columns[4].text.strip(),
+                    "Berthing Date": columns[5].text.strip(),
+                    "Closing Date": columns[6].text.strip(),
+                    "Status": columns[status_index].text.strip(),  # Tambahkan kolom status
+                }
+            )
 
     # Membuat DataFrame dari data yang diekstrak
     df_kapal = pd.DataFrame(data)
