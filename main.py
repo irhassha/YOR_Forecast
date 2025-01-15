@@ -98,20 +98,15 @@ def hitung_yard_occupancy(
         ekspor_truk = np.random.normal(rata_rata_ekspor_truk, std_ekspor_truk)
 
         # Hitung total container ekspor dan impor HARIAN
-        total_impor = (
-            impor_truk + yard_occupancy_impor[hari - 1]
-        )  # tambahkan existing container
+        total_impor = impor_truk + yard_occupancy_impor[hari - 1]
         total_ekspor = ekspor_truk + yard_occupancy_ekspor[hari - 1]
 
         # Akumulasi container dari kapal yang datang
         for index, row in df.iterrows():
-            if (
-                hari >= row["delay"] and hari <= row["delay"] + 3
-            ):  # asumsi kapal sandar 3 hari
-                total_impor += (
-                    row["container_impor"] / 3
-                )  # bagi rata container per hari sandar
-                total_ekspor += row["container_ekspor"] / 3
+            if hari >= row["delay"] and hari <= row["delay"] + 3:  # asumsi kapal sandar 3 hari
+                # Perbaikan: bagi jumlah container dengan lama sandar (3 hari)
+                total_impor += row["container_impor"] / 3  
+                total_ekspor += row["container_ekspor"] / 3  
 
         yard_occupancy_impor[hari] = total_impor
         yard_occupancy_ekspor[hari] = total_ekspor
