@@ -93,16 +93,13 @@ n_simulasi = st.number_input(
 # Input jumlah hari
 n_hari = st.number_input("Jumlah Hari Prediksi", min_value=1, value=7, step=1)
 
-# Pilihan skenario
-skenario = st.selectbox(
-    "Pilih Skenario",
-    [
-        "1. Kapal-kapal datang sesuai dengan windownya",
-        "2. Jika terjadi delay di beberapa service kapal",
-        "3. Jika dalam satu minggu ada 2 service kapal yang sama dikarenakan kapal di minggu sebelumnya delay",
-        "4. Jika ada penambahan kapal diluar service yang 10 tadi",
-    ],
-)
+# Mapping skenario
+skenario_mapping = {
+    "1. Kapal-kapal datang sesuai dengan windownya": 1,
+    "2. Jika terjadi delay di beberapa service kapal": 2,
+    "3. Jika dalam satu minggu ada 2 service kapal yang sama dikarenakan kapal di minggu sebelumnya delay": 3,
+    "4. Jika ada penambahan kapal diluar service yang 10 tadi": 4,
+}
 
 # Tombol untuk menjalankan simulasi
 if st.button("Jalankan Simulasi"):
