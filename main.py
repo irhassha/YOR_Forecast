@@ -6,9 +6,12 @@ from datetime import date, timedelta
 
 # --- Fungsi untuk Menghitung Lama Sandar Kapal ---
 def hitung_lama_sandar(row):
-    total_bongkar_muat = row['jumlah bongkar'] + row['jumlah muat']
-    lama_sandar = total_bongkar_muat / (row['crane deployment'] * row['performance crane'])
+    total_bongkar_muat = row["jumlah bongkar"] + row["jumlah muat"]
+    lama_sandar = total_bongkar_muat / (
+        row["crane deployment"] * row["performance crane"]
+    )
     return lama_sandar
+
 
 # --- Fungsi untuk Menghasilkan Data Simulasi ---
 def generate_data_simulasi(df_kapal, skenario, n_hari):
@@ -16,9 +19,9 @@ def generate_data_simulasi(df_kapal, skenario, n_hari):
 
     # Simulasi delay kapal (distribusi uniform antara 0-2 hari)
     if skenario == 2:  # Hanya untuk skenario delay
-        df['delay'] = np.random.uniform(0, 2, size=len(df))
+        df["delay"] = np.random.uniform(0, 2, size=len(df))
     else:
-        df['delay'] = 0
+        df["delay"] = 0
 
     # --- Skenario 3: Kapal Susulan ---
     # ... (logika skenario 3 - perlu disesuaikan dengan data aktual)
@@ -27,21 +30,13 @@ def generate_data_simulasi(df_kapal, skenario, n_hari):
     # ... (logika skenario 4 - perlu disesuaikan dengan data aktual)
 
     # Hitung lama sandar kapal
-    df['lama sandar'] = df.apply(hitung_lama_sandar, axis=1)
+    df["lama sandar"] = df.apply(hitung_lama_sandar, axis=1)
 
     return df
 
+
 # --- Fungsi untuk Menghitung Yard Occupancy ---
-def hitung_yard_occupancy(
-    df,
-    rata_rata_impor_truk,
-    std_impor_truk,
-    rata_rata_ekspor_truk,
-    std_ekspor_truk,
-    n_hari,
-    existing_ekspor,
-    existing_impor,
-):
+def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
     # Inisialisasi array untuk menyimpan yard occupancy harian
     yard_occupancy_impor = np.zeros(n_hari)
     yard_occupancy_ekspor = np.zeros(n_hari)
@@ -51,25 +46,32 @@ def hitung_yard_occupancy(
     yard_occupancy_ekspor[0] = existing_ekspor
 
     for hari in range(1, n_hari):  # mulai dari hari ke-1 (besok)
-        # Simulasi tren ekspor-impor truk (distribusi normal)
-        impor_truk = np.random.normal(rata_rata_impor_truk, std_impor_truk)
-        ekspor_truk = np.random.normal(rata_rata_ekspor_truk, std_ekspor_truk)
+        # Hitung rata-rata ekspor dan impor truk HARIAN dari data truk
+        tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%d/%m/%Y")
+        
+        try:  # Tangani error jika tanggal tidak ditemukan di data truk
+            rata_rata_ekspor_truk = df_truk[df_truk['tanggal'] == tanggal_hari]['export'].values[0]
+            rata_rata_impor_truk = df_truk[df_truk['tanggal'] == tanggal_hari]['import'].values[0]
+        except IndexError:
+            rata_rata_ekspor_truk = 150  # Nilai default jika tanggal tidak ditemukan
+            rata_rata_impor_truk = 200  # Nilai default jika tanggal tidak ditemukan
 
         # Hitung total container ekspor dan impor HARIAN
-        total_impor = impor_truk + yard_occupancy_impor[hari - 1]
-        total_ekspor = ekspor_truk + yard_occupancy_ekspor[hari - 1]
+        total_impor = rata_rata_impor_truk + yard_occupancy_impor[hari - 1]
+        total_ekspor = rata_rata_ekspor_truk + yard_occupancy_ekspor[hari - 1]
 
         # Akumulasi container dari kapal yang datang
         for index, row in df.iterrows():
             # Gunakan 'lama sandar' yang dihitung dari data kapal
-            if hari >= row["delay"] and hari <= row["delay"] + row['lama sandar']:  
-                total_impor += row["jumlah bongkar"] / row['lama sandar']
-                total_ekspor += row["jumlah muat"] / row['lama sandar']
+            if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
+                total_impor += row["jumlah bongkar"] / row["lama sandar"]
+                total_ekspor += row["jumlah muat"] / row["lama sandar"]
 
         yard_occupancy_impor[hari] = total_impor
         yard_occupancy_ekspor[hari] = total_ekspor
 
     return yard_occupancy_impor, yard_occupancy_ekspor
+
 
 # --- Streamlit App ---
 st.title("Prediksi Yard Occupancy")
@@ -78,9 +80,18 @@ st.title("Prediksi Yard Occupancy")
 st.subheader("Upload Data Kapal")
 uploaded_file = st.file_uploader("Pilih file Excel", type="xlsx")
 
-if uploaded_file is not None:
+# --- Upload Data Truk ---
+st.subheader("Upload Data Truk")
+uploaded_file_truk = st.file_uploader("Pilih file Excel (Data Truk)", type="xlsx")
+
+if uploaded_file is not None and uploaded_file_truk is not None:
     df_kapal = pd.read_excel(uploaded_file)  # Baca file Excel
+    st.write("Data Kapal:")
     st.write(df_kapal)  # Menampilkan data kapal yang diupload
+
+    df_truk = pd.read_excel(uploaded_file_truk)  # Baca data truk
+    st.write("Data Truk:")
+    st.write(df_truk)  # Menampilkan data truk yang diupload
 
     # Input kapasitas yard
     kapasitas_yard_ekspor = st.number_input(
@@ -99,7 +110,9 @@ if uploaded_file is not None:
     )
 
     # Input jumlah simulasi
-    n_simulasi = st.number_input("Jumlah Simulasi", min_value=100, value=1000, step=100)
+    n_simulasi = st.number_input(
+        "Jumlah Simulasi", min_value=100, value=1000, step=100
+    )
 
     # Input jumlah hari
     n_hari = st.number_input("Jumlah Hari Prediksi", min_value=1, value=7, step=1)
@@ -132,15 +145,14 @@ if uploaded_file is not None:
         with st.spinner("Menjalankan simulasi..."):
             for i in range(n_simulasi):
                 # Generate data simulasi
-                df = generate_data_simulasi(df_kapal, skenario_mapping[skenario], n_hari)
+                df = generate_data_simulasi(
+                    df_kapal, skenario_mapping[skenario], n_hari
+                )
 
-                # Hitung yard occupancy
+                # Hitung yard occupancy (gunakan df_truk)
                 impor, ekspor = hitung_yard_occupancy(
                     df,
-                    rata_rata_impor_truk,
-                    std_impor_truk,
-                    rata_rata_ekspor_truk,
-                    std_ekspor_truk,
+                    df_truk,  # Gunakan data truk
                     n_hari,
                     existing_ekspor,
                     existing_impor,
@@ -197,7 +209,10 @@ if uploaded_file is not None:
         st.subheader("Output")
 
         # Membuat list tanggal
-        tanggal = [(date.today() + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, n_hari + 1)]
+        tanggal = [
+            (date.today() + timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(1, n_hari + 1)
+        ]
 
         # Membuat DataFrame untuk output
         df_output = pd.DataFrame(
@@ -207,11 +222,11 @@ if uploaded_file is not None:
                 "Rata-rata Impor (TEU)": rata_rata_impor,
                 "Deviasi Standar Impor": std_impor,
             },
-            index=tanggal  # Menggunakan tanggal sebagai index
+            index=tanggal,  # Menggunakan tanggal sebagai index
         )
 
         # Menampilkan DataFrame
         st.dataframe(df_output.T)  # transpose agar mudah dibaca
 
 else:
-    st.warning("Silakan upload data kapal terlebih dahulu.")
+    st.warning("Silakan upload data kapal dan data truk terlebih dahulu.")
