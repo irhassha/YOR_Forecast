@@ -165,4 +165,86 @@ skenario_mapping = {
 
 # Tombol untuk menjalankan simulasi
 if st.button("Jalankan Simulasi"):
-    #
+    # Inisialisasi array untuk menyimpan hasil simulasi
+    hasil_simulasi_impor = np.zeros((n_simulasi, n_hari))
+    hasil_simulasi_ekspor = np.zeros((n_simulasi, n_hari))
+
+    with st.spinner("Menjalankan simulasi..."):
+        for i in range(n_simulasi):
+            # Generate data simulasi
+            df = generate_data_simulasi(df_service, skenario_mapping[skenario], n_hari)
+
+            # Hitung yard occupancy
+            impor, ekspor = hitung_yard_occupancy(
+                df,
+                rata_rata_impor_truk,
+                std_impor_truk,
+                rata_rata_ekspor_truk,
+                std_ekspor_truk,
+                n_hari,
+                existing_ekspor,
+                existing_impor,
+            )
+
+            hasil_simulasi_impor[i, :] = impor
+            hasil_simulasi_ekspor[i, :] = ekspor
+
+    # --- Analisis Hasil ---
+    # Hitung statistik deskriptif (rata-rata, deviasi standar)
+    rata_rata_impor = np.mean(hasil_simulasi_impor, axis=0)
+    std_impor = np.std(hasil_simulasi_impor, axis=0)
+    rata_rata_ekspor = np.mean(hasil_simulasi_ekspor, axis=0)
+    std_ekspor = np.std(hasil_simulasi_ekspor, axis=0)
+
+    # --- Visualisasi ---
+    st.subheader("Visualisasi Hasil")
+
+    # Visualisasi yard occupancy ekspor dan impor per hari
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(range(1, n_hari + 1), rata_rata_ekspor, label="Ekspor (Rata-rata)")
+    ax.fill_between(
+        range(1, n_hari + 1),
+        rata_rata_ekspor - std_ekspor,
+        rata_rata_ekspor + std_ekspor,
+        alpha=0.2,
+    )
+    ax.plot(range(1, n_hari + 1), rata_rata_impor, label="Impor (Rata-rata)")
+    ax.fill_between(
+        range(1, n_hari + 1),
+        rata_rata_impor - std_impor,
+        rata_rata_impor + std_impor,
+        alpha=0.2,
+    )
+
+    ax.set_xlabel("Hari")
+    ax.set_ylabel("Yard Occupancy (TEU)")
+    ax.set_title(f"Yard Occupancy per Hari (Skenario {skenario})")
+    ax.legend()
+
+    # Set x-ticks to represent dates starting from tomorrow
+    ax.set_xticks(range(1, n_hari + 1))
+    ax.set_xticklabels(
+        [
+            (date.today() + timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(1, n_hari + 1)
+        ],
+        rotation=45,
+    )
+
+    st.pyplot(fig)
+
+    # --- Output ---
+    st.subheader("Output")
+
+    # Membuat DataFrame untuk output (tanpa kolom tanggal)
+    df_output = pd.DataFrame(
+        {
+            "Rata-rata Ekspor (TEU)": rata_rata_ekspor,
+            "Deviasi Standar Ekspor": std_ekspor,
+            "Rata-rata Impor (TEU)": rata_rata_impor,
+            "Deviasi Standar Impor": std_impor,
+        }
+    )
+
+    # Menampilkan DataFrame
+    st.dataframe(df_output.T)  # transpose agar mudah dibaca
