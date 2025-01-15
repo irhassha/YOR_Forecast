@@ -253,7 +253,7 @@ if uploaded_file is not None and uploaded_file_truk is not None:
                     total_muat += row["jumlah muat"] / row["lama sandar"]
 
             # Tambahkan data ke DataFrame
-            df_bongkar_muat = df_bongkar_muat.append({
+          df_bongkar_muat.loc[len(df_bongkar_muat)] = {
                 'Tanggal': tanggal_hari, 
                 'Total Bongkar (TEU)': total_bongkar, 
                 'Total Muat (TEU)': total_muat
