@@ -111,7 +111,7 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima lis
                 "Service": columns[2].text.strip(),
                 "ETA": columns[3].text.strip(),
                 "ETD": columns[4].text.strip(),
-                "Berthing Date": columns[5].text.strip(),
+                "status kapal": columns[5].text.strip(),
                 "Closing Date": columns[6].text.strip(),
                 "Status": columns[7].text.strip(),
             }
