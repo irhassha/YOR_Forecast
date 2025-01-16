@@ -5,7 +5,23 @@ import matplotlib.pyplot as plt
 from datetime import date, timedelta
 import requests
 from selenium import webdriver
-from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+
+# Konfigurasi opsi Chrome untuk Streamlit Cloud
+chrome_options = Options()
+chrome_options.add_argument("--headless")  # Jalankan Chrome tanpa GUI
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
+# Inisialisasi WebDriver
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
+# Gunakan Selenium seperti biasa
+driver.get("https://www.npct1.co.id/vessel-schedule")
+print(driver.title)
 
 # --- Fungsi untuk Menghitung Lama Sandar Kapal ---
 def hitung_lama_sandar(row):
