@@ -236,10 +236,10 @@ if uploaded_file is not None and uploaded_file_truk is not None:
         st.dataframe(df_output.T)  # transpose agar mudah dibaca
 
 
-        # --- Tabel Bongkar Muat per Hari ---
-        st.subheader("Tabel Bongkar Muat per Hari")
+           # --- Tabel Bongkar Muat per Hari ---
+    st.subheader("Tabel Bongkar Muat per Hari")
 
-# Inisialisasi DataFrame untuk tabel bongkar muat
+    # Inisialisasi DataFrame untuk tabel bongkar muat
     df_bongkar_muat = pd.DataFrame(columns=['Tanggal', 'Total Bongkar (TEU)', 'Total Muat (TEU)'])
 
     for hari in range(1, n_hari):
@@ -260,6 +260,6 @@ if uploaded_file is not None and uploaded_file_truk is not None:
         }
 
     st.dataframe(df_bongkar_muat)
-
+    
 else:
     st.warning("Silakan upload data kapal dan data truk terlebih dahulu.")
