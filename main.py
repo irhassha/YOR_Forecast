@@ -86,7 +86,7 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(Status=["ACTIVE", "REGISTER"]):  # Terima list status
+def ambil_data_kapal_website(STATUS=["ACTIVE", "REGISTER"]):  # Terima list status
     # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
 
