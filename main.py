@@ -86,8 +86,7 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima list status
-
+def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  
     # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
 
@@ -97,18 +96,30 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima lis
 
     # Mencari tabel jadwal kapal
     table = soup.find("table")
+    if not table:
+        print("Tabel tidak ditemukan di halaman.")
+        return pd.DataFrame()  # Kembalikan DataFrame kosong jika tabel tidak ditemukan
 
     # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
     data = []
-    for row in table.find_all("tr")[1:]:  # Skip baris header
+    rows = table.find_all("tr")
+
+    # Validasi struktur tabel
+    print("Validasi struktur tabel (header dan baris pertama):")
+    for i, row in enumerate(rows[:2]):  # Tampilkan header dan baris pertama untuk cek struktur
+        columns = row.find_all("td") or row.find_all("th")
+        print(f"Row {i}: {[col.text.strip() for col in columns]}")
+
+    # Ekstraksi data (skip header)
+    for row in rows[1:]:  # Skip baris header
         columns = row.find_all("td")
 
-        # Periksa apakah ada cukup kolom dalam baris (untuk menghindari error)
-        if len(columns) < 8:  # Pastikan semua kolom termasuk status tersedia
+        # Periksa apakah ada cukup kolom dalam baris
+        if len(columns) < 8:  # Asumsikan kolom status berada di kolom ke-8
             continue
 
         # Ekstrak data kolom, termasuk status
-        status = columns[7].text.strip()  # Kolom terakhir adalah status
+        status = columns[7].text.strip()  # Kolom ke-8 adalah status
         if status in status_kapal:  # Filter berdasarkan status
             data.append(
                 {
@@ -128,6 +139,19 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima lis
 
     return df_kapal
 
+
+# --- Eksekusi Fungsi ---
+if __name__ == "__main__":
+    # Ambil data dengan status ACTIVE atau REGISTER
+    df_kapal = ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"])
+
+    # Tampilkan hasil
+    print("\nData Kapal dengan Status ACTIVE atau REGISTER:")
+    print(df_kapal)
+
+    # Simpan ke file CSV (opsional)
+    df_kapal.to_csv("data_kapal_filtered.csv", index=False)
+    print("\nData disimpan ke 'data_kapal_filtered.csv'")
 
 
 # --- Streamlit App ---
