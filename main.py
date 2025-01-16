@@ -4,7 +4,8 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from datetime import date, timedelta
 import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 # --- Fungsi untuk Menghitung Lama Sandar Kapal ---
 def hitung_lama_sandar(row):
@@ -84,45 +85,46 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
     return yard_occupancy_impor, yard_occupancy_ekspor
 
+# Inisialisasi WebDriver (sesuaikan dengan path WebDriver Anda)
+driver = webdriver.Chrome(executable_path="path/to/chromedriver")
 
-# --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(status=["ACTIVE", "REGISTER"]):  # Terima list status
-    # URL website
-    url = "https://www.npct1.co.id/vessel-schedule"
+# Buka halaman web
+url = "https://www.npct1.co.id/vessel-schedule"
+driver.get(url)
 
-    # Mengambil kode HTML website
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, "html.parser")
+# Tunggu beberapa detik untuk memastikan data dimuat (sesuaikan jika perlu)
+driver.implicitly_wait(10)
 
-    # Mencari tabel jadwal kapal
-    table = soup.find("table")
+# Ambil semua baris dalam tabel
+rows = driver.find_elements(By.CSS_SELECTOR, "table tbody tr")
 
-    # Mencari baris header untuk mendapatkan indeks kolom status
-    header_row = table.find("tr")
-    headers = [th.text.strip() for th in header_row.find_all("th")]
-    status_index = headers.index("status")  # Mendapatkan indeks kolom "Status"
+# Filter data dengan STATUS ACTIVE atau REGISTER
+data = []
+for row in rows:
+    columns = row.find_elements(By.TAG_NAME, "td")
+    if len(columns) > 0:
+        # Ambil kolom sesuai kebutuhan
+        vessel_name = columns[0].text.strip()  # Ubah indeks jika kolom berbeda
+        eta = columns[1].text.strip()         # Ubah indeks jika kolom berbeda
+        status = columns[-1].text.strip()     # Kolom STATUS di bagian akhir
+        
+        # Filter berdasarkan STATUS
+        if status in ["ACTIVE", "REGISTER"]:
+            data.append({
+                "Vessel Name": vessel_name,
+                "ETA": eta,
+                "Status": status
+            })
 
-    # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
-    data = []
-    for row in table.find_all("tr")[1:]:  # Skip baris header
-        columns = row.find_all("td")
+# Buat DataFrame dari hasil
+df = pd.DataFrame(data)
 
-        # Periksa apakah status kapal ada dalam list status_kapal (tidak dipakai)
-        # if columns[status_index].text.strip() in status_kapal:
-        data.append(
-            {
-                "Vessel Name": columns[0].text.strip(),
-                "Service": columns[4].text.strip(),
-                "Status": columns[5].text.strip(),
-                "ETA": columns[6].text.strip(),
-            }
-        )
+# Simpan ke file CSV atau tampilkan
+df.to_csv("filtered_vessel_schedule.csv", index=False)
+print(df)
 
-    # Membuat DataFrame dari data yang diekstrak
-    df_kapal = pd.DataFrame(data)
-
-    return df_kapal
-
+# Tutup browser
+driver.quit()
 
 # --- Streamlit App ---
 st.title("Prediksi Yard Occupancy")
