@@ -102,7 +102,6 @@ def ambil_data_kapal_website(status_kapal=["REGISTER"]):  # Terima list status
     for row in table.find_all("tr")[1:]:  # Skip baris header
         columns = row.find_all("td")
 
-        # Periksa apakah status kapal ada dalam list status_kapal (tidak dipakai)
         # if columns[status_index].text.strip() in status_kapal:
         data.append(
             {
