@@ -144,17 +144,6 @@ df_service = pd.read_excel("data_service.xlsx")  # Baca file dari repositori
 st.write("Data Service:")
 st.write(df_service)
 
-if df_kapal is not None and uploaded_file_truk is not None:
-    # ... (baca data truk - sama seperti sebelumnya)
-
-   # Gabungkan data kapal dengan data service
-    df_kapal = pd.merge(df_kapal, df_service, on='Service', how='left')
-
-    # Menampilkan Data Kapal
-    st.write("Data Kapal (Setelah Digabung):")
-    st.write(df_kapal)
-
-
 # --- Upload Data Kapal ---
 st.subheader("Upload Data Kapal")
 upload_choice = st.radio(
@@ -179,6 +168,17 @@ st.write(df_kapal)  # Menampilkan data kapal yang diupload / diambil dari websit
 # --- Upload Data Truk ---
 st.subheader("Upload Data Truk")
 uploaded_file_truk = st.file_uploader("Pilih file Excel (Data Truk)", type="xlsx")
+
+if df_kapal is not None and uploaded_file_truk is not None:
+    # ... (baca data truk - sama seperti sebelumnya)
+
+   # Gabungkan data kapal dengan data service
+    df_kapal = pd.merge(df_kapal, df_service, on='Service', how='left')
+
+    # Menampilkan Data Kapal
+    st.write("Data Kapal (Setelah Digabung):")
+    st.write(df_kapal)
+
 
 # ---  Perbaikan:  Cek apakah df_kapal sudah terdefinisi ---
 if df_kapal is not None and uploaded_file_truk is not None:
