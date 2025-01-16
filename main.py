@@ -107,9 +107,9 @@ def ambil_data_kapal_website(status=["ACTIVE", "REGISTER"]):  # Terima list stat
         data.append(
             {
                 "Vessel Name": columns[0].text.strip(),
-                "Service": columns[5].text.strip(),
-                "Status": columns[6].text.strip(),
-                "ETA": columns[7].text.strip(),
+                "Service": columns[4].text.strip(),
+                "Status": columns[5].text.strip(),
+                "ETA": columns[6].text.strip(),
             }
         )
 
