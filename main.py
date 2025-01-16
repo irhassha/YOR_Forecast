@@ -139,6 +139,19 @@ if __name__ == "__main__":
 # --- Streamlit App ---
 st.title("Prediksi Yard Occupancy")
 
+# --- Baca Data Service dari Repositori ---
+df_service = pd.read_excel("data_service.xlsx")  # Baca file dari repositori
+st.write("Data Service:")
+st.write(df_service)
+
+   # Gabungkan data kapal dengan data service
+    df_kapal = pd.merge(df_kapal, df_service, on='Service', how='left')
+
+    # Menampilkan Data Kapal
+    st.write("Data Kapal (Setelah Digabung):")
+    st.write(df_kapal)
+
+
 # --- Upload Data Kapal ---
 st.subheader("Upload Data Kapal")
 upload_choice = st.radio(
