@@ -87,6 +87,10 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
 def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima list status
+    import requests
+    from bs4 import BeautifulSoup
+    import pandas as pd
+
     # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
 
@@ -102,24 +106,31 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima lis
     for row in table.find_all("tr")[1:]:  # Skip baris header
         columns = row.find_all("td")
 
-        # Periksa apakah status kapal ada dalam list status_kapal (tidak dipakai)
-        # if columns[status_index].text.strip() in status_kapal:
-        data.append(
-            {
-                "Vessel Name": columns[0].text.strip(),
-                "Voyage No": columns[1].text.strip(),
-                "Service": columns[2].text.strip(),
-                "ETA": columns[3].text.strip(),
-                "ETD": columns[4].text.strip(),
-                "Berthing Date": columns[5].text.strip(),
-                "Closing Date": columns[6].text.strip(),
-            }
-        )
+        # Periksa apakah ada cukup kolom dalam baris (untuk menghindari error)
+        if len(columns) < 8:  # Pastikan semua kolom termasuk status tersedia
+            continue
+
+        # Ekstrak data kolom, termasuk status
+        status = columns[7].text.strip()  # Kolom terakhir adalah status
+        if status in status_kapal:  # Filter berdasarkan status
+            data.append(
+                {
+                    "Vessel Name": columns[0].text.strip(),
+                    "Voyage No": columns[1].text.strip(),
+                    "Service": columns[2].text.strip(),
+                    "ETA": columns[3].text.strip(),
+                    "ETD": columns[4].text.strip(),
+                    "Berthing Date": columns[5].text.strip(),
+                    "Closing Date": columns[6].text.strip(),
+                    "Status": status,  # Tambahkan status ke data
+                }
+            )
 
     # Membuat DataFrame dari data yang diekstrak
     df_kapal = pd.DataFrame(data)
 
     return df_kapal
+
 
 
 # --- Streamlit App ---
