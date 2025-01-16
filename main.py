@@ -144,6 +144,9 @@ df_service = pd.read_excel("data_service.xlsx")  # Baca file dari repositori
 st.write("Data Service:")
 st.write(df_service)
 
+if df_kapal is not None and uploaded_file_truk is not None:
+    # ... (baca data truk - sama seperti sebelumnya)
+
    # Gabungkan data kapal dengan data service
     df_kapal = pd.merge(df_kapal, df_service, on='Service', how='left')
 
