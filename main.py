@@ -86,15 +86,26 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):
+def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima list status
+    # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
+
+    # Mengambil kode HTML website
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
+
+    # Mencari tabel jadwal kapal
     table = soup.find("table")
+
+    # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
     data = []
-    for row in table.find_all("tr")[1:]:
+    for row in table.find_all("tr")[1:]:  # Skip baris header
         columns = row.find_all("td")
-            data.append({
+
+        # Periksa apakah status kapal ada dalam list status_kapal (tidak dipakai)
+        # if columns[status_index].text.strip() in status_kapal:
+        data.append(
+            {
                 "Vessel Name": columns[0].text.strip(),
                 "Voyage No": columns[1].text.strip(),
                 "Service": columns[2].text.strip(),
@@ -102,10 +113,15 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):
                 "ETD": columns[4].text.strip(),
                 "Berthing Date": columns[5].text.strip(),
                 "Closing Date": columns[6].text.strip(),
-                "Status": columns[7].text.strip()
-            })
+                "Status": columns[7].text.strip(),
+            }
+        )
+
+    # Membuat DataFrame dari data yang diekstrak
     df_kapal = pd.DataFrame(data)
+
     return df_kapal
+
 
 # --- Eksekusi Fungsi ---
 if __name__ == "__main__":
