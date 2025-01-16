@@ -94,9 +94,6 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):
     data = []
     for row in table.find_all("tr")[1:]:
         columns = row.find_all("td")
-         # Ekstrak data kolom, termasuk status
-        status = columns[7].text.strip()  # Kolom terakhir adalah status
-        if status in status_kapal:  # Filter berdasarkan status
             data.append({
                 "Vessel Name": columns[0].text.strip(),
                 "Voyage No": columns[1].text.strip(),
@@ -105,6 +102,7 @@ def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):
                 "ETD": columns[4].text.strip(),
                 "Berthing Date": columns[5].text.strip(),
                 "Closing Date": columns[6].text.strip(),
+                "Status": columns[7].text.strip()
             })
     df_kapal = pd.DataFrame(data)
     return df_kapal
