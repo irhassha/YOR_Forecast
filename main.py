@@ -86,7 +86,7 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
 
 # --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(STATUS=["ACTIVE", "REGISTER"]):  # Terima list status
+def ambil_data_kapal_website(Status=["ACTIVE", "REGISTER"]):  # Terima list status
     # URL website
     url = "https://www.npct1.co.id/vessel-schedule"
 
@@ -100,7 +100,7 @@ def ambil_data_kapal_website(STATUS=["ACTIVE", "REGISTER"]):  # Terima list stat
     # Mencari baris header untuk mendapatkan indeks kolom status
     header_row = table.find("tr")
     headers = [th.text.strip() for th in header_row.find_all("th")]
-    status_index = headers.index("STATUS")  # Mendapatkan indeks kolom "Status"
+    status_index = headers.index("Status")  # Mendapatkan indeks kolom "Status"
 
     # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
     data = []
