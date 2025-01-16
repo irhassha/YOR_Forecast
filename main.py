@@ -4,24 +4,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from datetime import date, timedelta
 import requests
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-
-# Konfigurasi opsi Chrome untuk Streamlit Cloud
-chrome_options = Options()
-chrome_options.add_argument("--headless")  # Jalankan Chrome tanpa GUI
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-
-# Inisialisasi WebDriver
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
-# Gunakan Selenium seperti biasa
-driver.get("https://www.npct1.co.id/vessel-schedule")
-print(driver.title)
+from bs4 import BeautifulSoup
 
 # --- Fungsi untuk Menghitung Lama Sandar Kapal ---
 def hitung_lama_sandar(row):
@@ -101,46 +84,43 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
 
     return yard_occupancy_impor, yard_occupancy_ekspor
 
-# Inisialisasi WebDriver (sesuaikan dengan path WebDriver Anda)
-driver = webdriver.Chrome(executable_path="path/to/chromedriver")
 
-# Buka halaman web
-url = "https://www.npct1.co.id/vessel-schedule"
-driver.get(url)
+# --- Fungsi untuk Mengambil Data Kapal dari Website ---
+def ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"]):  # Terima list status
+    # URL website
+    url = "https://www.npct1.co.id/vessel-schedule"
 
-# Tunggu beberapa detik untuk memastikan data dimuat (sesuaikan jika perlu)
-driver.implicitly_wait(10)
+    # Mengambil kode HTML website
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
 
-# Ambil semua baris dalam tabel
-rows = driver.find_elements(By.CSS_SELECTOR, "table tbody tr")
+    # Mencari tabel jadwal kapal
+    table = soup.find("table")
 
-# Filter data dengan STATUS ACTIVE atau REGISTER
-data = []
-for row in rows:
-    columns = row.find_elements(By.TAG_NAME, "td")
-    if len(columns) > 0:
-        # Ambil kolom sesuai kebutuhan
-        vessel_name = columns[0].text.strip()  # Ubah indeks jika kolom berbeda
-        eta = columns[1].text.strip()         # Ubah indeks jika kolom berbeda
-        status = columns[-1].text.strip()     # Kolom STATUS di bagian akhir
-        
-        # Filter berdasarkan STATUS
-        if status in ["ACTIVE", "REGISTER"]:
-            data.append({
-                "Vessel Name": vessel_name,
-                "ETA": eta,
-                "Status": status
-            })
+    # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
+    data = []
+    for row in table.find_all("tr")[1:]:  # Skip baris header
+        columns = row.find_all("td")
 
-# Buat DataFrame dari hasil
-df = pd.DataFrame(data)
+        # Periksa apakah status kapal ada dalam list status_kapal (tidak dipakai)
+        # if columns[status_index].text.strip() in status_kapal:
+        data.append(
+            {
+                "Vessel Name": columns[0].text.strip(),
+                "Voyage No": columns[1].text.strip(),
+                "Service": columns[2].text.strip(),
+                "ETA": columns[3].text.strip(),
+                "ETD": columns[4].text.strip(),
+                "Berthing Date": columns[5].text.strip(),
+                "Closing Date": columns[6].text.strip(),
+            }
+        )
 
-# Simpan ke file CSV atau tampilkan
-df.to_csv("filtered_vessel_schedule.csv", index=False)
-print(df)
+    # Membuat DataFrame dari data yang diekstrak
+    df_kapal = pd.DataFrame(data)
 
-# Tutup browser
-driver.quit()
+    return df_kapal
+
 
 # --- Streamlit App ---
 st.title("Prediksi Yard Occupancy")
@@ -241,16 +221,98 @@ if df_kapal is not None and uploaded_file_truk is not None:
                 hasil_simulasi_ekspor[i, :] = ekspor
 
         # --- Analisis Hasil ---
-        # ... (hitung rata-rata dan deviasi standar - sama seperti sebelumnya)
+        # Hitung statistik deskriptif (rata-rata, deviasi standar)
+        rata_rata_impor = np.mean(hasil_simulasi_impor, axis=0)
+        std_impor = np.std(hasil_simulasi_impor, axis=0)
+        rata_rata_ekspor = np.mean(hasil_simulasi_ekspor, axis=0)
+        std_ekspor = np.std(hasil_simulasi_ekspor, axis=0)
 
         # --- Visualisasi ---
-        # ... (sama seperti sebelumnya)
+        st.subheader("Visualisasi Hasil")
+
+        # Visualisasi yard occupancy ekspor dan impor per hari
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(range(1, n_hari + 1), rata_rata_ekspor, label="Ekspor (Rata-rata)")
+        ax.fill_between(
+            range(1, n_hari + 1),
+            rata_rata_ekspor - std_ekspor,
+            rata_rata_ekspor + std_ekspor,
+            alpha=0.2,
+        )
+        ax.plot(range(1, n_hari + 1), rata_rata_impor, label="Impor (Rata-rata)")
+        ax.fill_between(
+            range(1, n_hari + 1),
+            rata_rata_impor - std_impor,
+            rata_rata_impor + std_impor,
+            alpha=0.2,
+        )
+
+        ax.set_xlabel("Hari")
+        ax.set_ylabel("Yard Occupancy (TEU)")
+        ax.set_title(f"Yard Occupancy per Hari (Skenario {skenario})")
+        ax.legend()
+
+        # Set x-ticks to represent dates starting from tomorrow
+        ax.set_xticks(range(1, n_hari + 1))
+        ax.set_xticklabels(
+            [
+                (date.today() + timedelta(days=i)).strftime("%Y-%m-%d")
+                for i in range(1, n_hari + 1)
+            ],
+            rotation=45,
+        )
+
+        st.pyplot(fig)
 
         # --- Output ---
-        # ... (tabel yard occupancy - sama seperti sebelumnya)
+        st.subheader("Output")
+
+        # Membuat list tanggal
+        tanggal = [
+            (date.today() + timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(1, n_hari + 1)
+        ]
+
+        # Membuat DataFrame untuk output
+        df_output = pd.DataFrame(
+            {
+                "Rata-rata Ekspor (TEU)": rata_rata_ekspor,
+                "Deviasi Standar Ekspor": std_ekspor,
+                "Rata-rata Impor (TEU)": rata_rata_impor,
+                "Deviasi Standar Impor": std_impor,
+            },
+            index=tanggal,  # Menggunakan tanggal sebagai index
+        )
+
+        # Menampilkan DataFrame
+        st.dataframe(df_output.T)  # transpose agar mudah dibaca
 
         # --- Tabel Bongkar Muat per Hari ---
-        # ... (sama seperti sebelumnya)
+        st.subheader("Tabel Bongkar Muat per Hari")
+
+        # Inisialisasi DataFrame untuk tabel bongkar muat
+        df_bongkar_muat = pd.DataFrame(
+            columns=["Tanggal", "Total Bongkar (TEU)", "Total Muat (TEU)"]
+        )
+
+        for hari in range(1, n_hari):
+            tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%Y-%m-%d")
+            total_bongkar = 0
+            total_muat = 0
+
+            for index, row in df.iterrows():
+                if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
+                    total_bongkar += row["jumlah bongkar"] / row["lama sandar"]
+                    total_muat += row["jumlah muat"] / row["lama sandar"]
+
+            # Tambahkan data ke DataFrame menggunakan .loc
+            df_bongkar_muat.loc[len(df_bongkar_muat)] = {
+                "Tanggal": tanggal_hari,
+                "Total Bongkar (TEU)": total_bongkar,
+                "Total Muat (TEU)": total_muat,
+            }
+
+        st.dataframe(df_bongkar_muat)
 
 else:
     st.warning("Silakan upload data truk terlebih dahulu.")
