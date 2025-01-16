@@ -3,8 +3,6 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 from datetime import date, timedelta
-import requests
-from bs4 import BeautifulSoup
 
 # --- Fungsi untuk Menghitung Lama Sandar Kapal ---
 def hitung_lama_sandar(row):
@@ -50,29 +48,26 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
     for hari in range(1, n_hari):  # mulai dari hari ke-1 (besok)
         # Hitung rata-rata ekspor dan impor truk HARIAN dari data truk
         tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%d/%m/%Y")
+        
         try:  # Tangani error jika tanggal tidak ditemukan di data truk
-            rata_rata_ekspor_truk = (
-                df_truk[df_truk["tanggal"] == tanggal_hari]["export"].values[0]
-            )
-            rata_rata_impor_truk = (
-                df_truk[df_truk["tanggal"] == tanggal_hari]["import"].values[0]
-            )
+            rata_rata_ekspor_truk = df_truk[df_truk['tanggal'] == tanggal_hari]['export'].values[0]
+            rata_rata_impor_truk = df_truk[df_truk['tanggal'] == tanggal_hari]['import'].values[0]
         except IndexError:
             rata_rata_ekspor_truk = 150  # Nilai default jika tanggal tidak ditemukan
             rata_rata_impor_truk = 200  # Nilai default jika tanggal tidak ditemukan
 
         # Hitung total container ekspor dan impor HARIAN
-        total_impor = yard_occupancy_impor[hari - 1] + rata_rata_impor_truk
+        total_impor =  yard_occupancy_impor[hari - 1] + rata_rata_impor_truk  
         total_ekspor = yard_occupancy_ekspor[hari - 1] + rata_rata_ekspor_truk
 
         # Akumulasi container dari kapal yang datang
         for index, row in df.iterrows():
             if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
                 total_impor += row["jumlah bongkar"] / row["lama sandar"]
-                total_ekspor += row["jumlah muat"] / row["lama sandar"]
+                total_ekspor += row["jumlah muat"] / row["lama sandar"]  # Tambah dulu dari kapal
 
         # Kurangi total_impor dengan jumlah kontainer yang dibawa truk impor
-        total_impor -= rata_rata_impor_truk
+        total_impor -= rata_rata_impor_truk  
 
         # Kurangi total_ekspor dengan jumlah kontainer yang dimuat ke kapal (ekspor)
         for index, row in df.iterrows():
@@ -85,103 +80,22 @@ def hitung_yard_occupancy(df, df_truk, n_hari, existing_ekspor, existing_impor):
     return yard_occupancy_impor, yard_occupancy_ekspor
 
 
-# --- Fungsi untuk Mengambil Data Kapal dari Website ---
-def ambil_data_kapal_website(status_kapal=["REGISTER"]):  # Terima list status
-    # URL website
-    url = "https://www.npct1.co.id/vessel-schedule"
-
-    # Mengambil kode HTML website
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, "html.parser")
-
-    # Mencari tabel jadwal kapal
-    table = soup.find("table")
-
-    # Mengambil data dari tabel dan menyimpannya dalam list of dictionaries
-    data = []
-    for row in table.find_all("tr")[1:]:  # Skip baris header
-        columns = row.find_all("td")
-
-        # if columns[status_index].text.strip() in status_kapal:
-        data.append(
-            {
-                "Vessel Name": columns[0].text.strip(),
-                "Voyage No": columns[1].text.strip(),
-                "Service": columns[2].text.strip(),
-                "ETA": columns[3].text.strip(),
-                "ETD": columns[4].text.strip(),
-                "status kapal": columns[5].text.strip(),
-                "Closing Date": columns[6].text.strip(),
-                "Status": columns[7].text.strip(),
-            }
-        )
-
-    # Membuat DataFrame dari data yang diekstrak
-    df_kapal = pd.DataFrame(data)
-
-    return df_kapal
-
-
-# --- Eksekusi Fungsi ---
-if __name__ == "__main__":
-    # Ambil data dengan status ACTIVE atau REGISTER
-    df_kapal = ambil_data_kapal_website(status_kapal=["ACTIVE", "REGISTER"])
-
-    # Tampilkan hasil
-    print("\nData Kapal dengan Status ACTIVE atau REGISTER:")
-    print(df_kapal)
-
-    # Simpan ke file CSV (opsional)
-    df_kapal.to_csv("data_kapal_filtered.csv", index=False)
-    print("\nData disimpan ke 'data_kapal_filtered.csv'")
-
-
 # --- Streamlit App ---
 st.title("Prediksi Yard Occupancy")
 
-# --- Baca Data Service dari Repositori ---
-df_service = pd.read_excel("data_service.xlsx")  # Baca file dari repositori
-st.write("Data Service:")
-st.write(df_service)
-
 # --- Upload Data Kapal ---
 st.subheader("Upload Data Kapal")
-upload_choice = st.radio(
-    "Pilih sumber data kapal:", ("Upload dari Excel", "Ambil dari Website")
-)
-
-if upload_choice == "Upload dari Excel":
-    uploaded_file = st.file_uploader("Pilih file Excel", type="xlsx")
-    if uploaded_file is not None:
-        df_kapal = pd.read_excel(uploaded_file)  # Baca file Excel
-    else:
-        st.warning("Silakan upload data kapal terlebih dahulu.")
-        st.stop()  # Hentikan eksekusi jika tidak ada file yang diupload
-elif upload_choice == "Ambil dari Website":
-    with st.spinner("Mengambil data kapal dari website..."):
-        df_kapal = ambil_data_kapal_website()  # Tidak perlu parameter status
-
-# --- Menampilkan Data Kapal ---
-st.write("Data Kapal:")
-st.write(df_kapal)  # Menampilkan data kapal yang diupload / diambil dari website
+uploaded_file = st.file_uploader("Pilih file Excel", type="xlsx")
 
 # --- Upload Data Truk ---
 st.subheader("Upload Data Truk")
 uploaded_file_truk = st.file_uploader("Pilih file Excel (Data Truk)", type="xlsx")
 
-if df_kapal is not None and uploaded_file_truk is not None:
-    # ... (baca data truk - sama seperti sebelumnya)
+if uploaded_file is not None and uploaded_file_truk is not None:
+    df_kapal = pd.read_excel(uploaded_file)  # Baca file Excel
+    st.write("Data Kapal:")
+    st.write(df_kapal)  # Menampilkan data kapal yang diupload
 
-   # Gabungkan data kapal dengan data service
-    df_kapal = pd.merge(df_kapal, df_service, on='Service', how='left')
-
-    # Menampilkan Data Kapal
-    st.write("Data Kapal (Setelah Digabung):")
-    st.write(df_kapal)
-
-
-# ---  Perbaikan:  Cek apakah df_kapal sudah terdefinisi ---
-if df_kapal is not None and uploaded_file_truk is not None:
     df_truk = pd.read_excel(uploaded_file_truk)  # Baca data truk
     st.write("Data Truk:")
     st.write(df_truk)  # Menampilkan data truk yang diupload
@@ -244,7 +158,11 @@ if df_kapal is not None and uploaded_file_truk is not None:
 
                 # Hitung yard occupancy (gunakan df_truk)
                 impor, ekspor = hitung_yard_occupancy(
-                    df, df_truk, n_hari, existing_ekspor, existing_impor
+                    df,
+                    df_truk,  # Gunakan data truk
+                    n_hari,
+                    existing_ekspor,
+                    existing_impor,
                 )
 
                 hasil_simulasi_impor[i, :] = impor
@@ -317,32 +235,32 @@ if df_kapal is not None and uploaded_file_truk is not None:
         # Menampilkan DataFrame
         st.dataframe(df_output.T)  # transpose agar mudah dibaca
 
+
         # --- Tabel Bongkar Muat per Hari ---
         st.subheader("Tabel Bongkar Muat per Hari")
 
-        # Inisialisasi DataFrame untuk tabel bongkar muat
-        df_bongkar_muat = pd.DataFrame(
-            columns=["Tanggal", "Total Bongkar (TEU)", "Total Muat (TEU)"]
-        )
+# Inisialisasi DataFrame untuk tabel bongkar muat
+        df_bongkar_muat = pd.DataFrame(columns=['Tanggal', 'Total Bongkar (TEU)', 'Total Muat (TEU)'])
 
         for hari in range(1, n_hari):
-            tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%Y-%m-%d")
-            total_bongkar = 0
-            total_muat = 0
+        tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%Y-%m-%d")
+        total_bongkar = 0
+        total_muat = 0
 
-            for index, row in df.iterrows():
-                if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
-                    total_bongkar += row["jumlah bongkar"] / row["lama sandar"]
-                    total_muat += row["jumlah muat"] / row["lama sandar"]
+        for index, row in df.iterrows():
+            if hari >= row["delay"] and hari <= row["delay"] + row["lama sandar"]:
+                total_bongkar += row["jumlah bongkar"] / row["lama sandar"]
+                total_muat += row["jumlah muat"] / row["lama sandar"]
 
-            # Tambahkan data ke DataFrame menggunakan .loc
-            df_bongkar_muat.loc[len(df_bongkar_muat)] = {
-                "Tanggal": tanggal_hari,
-                "Total Bongkar (TEU)": total_bongkar,
-                "Total Muat (TEU)": total_muat,
-            }
+        # Tambahkan data ke DataFrame menggunakan .loc
+        df_bongkar_muat.loc[len(df_bongkar_muat)] = {
+            'Tanggal': tanggal_hari, 
+            'Total Bongkar (TEU)': total_bongkar, 
+            'Total Muat (TEU)': total_muat
+        }
 
         st.dataframe(df_bongkar_muat)
 
+
 else:
-    st.warning("Silakan upload data truk terlebih dahulu.")
+    st.warning("Silakan upload data kapal dan data truk terlebih dahulu.")
