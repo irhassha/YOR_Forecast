@@ -240,9 +240,9 @@ if uploaded_file is not None and uploaded_file_truk is not None:
         st.subheader("Tabel Bongkar Muat per Hari")
 
 # Inisialisasi DataFrame untuk tabel bongkar muat
-        df_bongkar_muat = pd.DataFrame(columns=['Tanggal', 'Total Bongkar (TEU)', 'Total Muat (TEU)'])
+    df_bongkar_muat = pd.DataFrame(columns=['Tanggal', 'Total Bongkar (TEU)', 'Total Muat (TEU)'])
 
-        for hari in range(1, n_hari):
+    for hari in range(1, n_hari):
         tanggal_hari = (date.today() + timedelta(days=hari)).strftime("%Y-%m-%d")
         total_bongkar = 0
         total_muat = 0
@@ -259,8 +259,7 @@ if uploaded_file is not None and uploaded_file_truk is not None:
             'Total Muat (TEU)': total_muat
         }
 
-        st.dataframe(df_bongkar_muat)
-
+    st.dataframe(df_bongkar_muat)
 
 else:
     st.warning("Silakan upload data kapal dan data truk terlebih dahulu.")
