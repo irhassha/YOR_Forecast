@@ -70,17 +70,12 @@ try:
     # 📊 Detailed Forecast: Receiving Trends by Service
     # ======================
     st.subheader("🔍 Receiving Trends by Service")
-    if 'SERVICE OUT' in df.columns and 'DAY' in df.columns and 'HOUR' in df.columns:
-        pivot_table = df.pivot_table(index='SERVICE OUT', columns='DAY', values='GATE IN', aggfunc='count', fill_value=0)
+    if 'SERVICE' in df.columns and 'DAY' in df.columns:
+        pivot_table = df.pivot_table(index='SERVICE', columns='DAY', values='GATE IN', aggfunc='count', fill_value=0)
         pivot_percentage = pivot_table.div(pivot_table.sum(axis=1), axis=0) * 100
         st.dataframe(pivot_percentage.style.format("{:.1f}%"))
-
-        if st.checkbox("Tampilkan detail per HOUR"):
-            hour_detail = df.groupby(['SERVICE OUT', 'DAY'])['HOUR'].value_counts(normalize=True).unstack().fillna(0) * 100
-            st.markdown("**🕒 Distribusi Persentase Container per HOUR dalam setiap DAY & SERVICE**")
-            st.dataframe(hour_detail.style.format("{:.1f}%"))
     else:
-        st.info("Kolom SERVICE OUT, DAY, atau HOUR tidak ditemukan di dataset.")
-
+        st.info("Kolom SERVICE atau DAY tidak ditemukan di dataset.")
+        
 except Exception as e:
     st.error(f"Terjadi kesalahan saat membaca atau memproses file: {e}")
