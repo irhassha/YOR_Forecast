@@ -11,7 +11,7 @@ st.title("📦 Forecast Jumlah Container Masuk")
 # Load file dari GitHub (ganti URL dengan path file abati di GitHub)
 @st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/username/repo/main/TEST%20EXP.csv"
+    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%20DATA%202024.csv"
     df = pd.read_csv(url, delimiter=';')
     df['GATE IN'] = pd.to_datetime(df['GATE IN'], format='%d/%m/%Y %H:%M')
     return df
