@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Container Forecast", layout="wide")
@@ -15,13 +15,17 @@ if uploaded_file is not None:
     try:
         df = pd.read_csv(uploaded_file, delimiter=';')
         df['GATE IN'] = pd.to_datetime(df['GATE IN'], format='%d/%m/%Y %H:%M')
-        
+
         df_daily = df.groupby(df['GATE IN'].dt.date).size().reset_index(name='container_count')
         df_daily['GATE IN'] = pd.to_datetime(df_daily['GATE IN'])
         ts = df_daily.set_index('GATE IN')['container_count']
 
-        # Pilih horizon forecast
-        forecast_days = st.slider("Pilih berapa hari ke depan untuk forecast", min_value=7, max_value=90, value=30)
+        # Pilih tanggal awal dan akhir forecast
+        st.subheader("📅 Pilih Periode Forecast")
+        start_date = st.date_input("Tanggal mulai forecast", value=ts.index[-1] + pd.Timedelta(days=1), min_value=ts.index[-1] + pd.Timedelta(days=1))
+        end_date = st.date_input("Tanggal akhir forecast", value=start_date + pd.Timedelta(days=30), min_value=start_date)
+
+        forecast_days = (end_date - start_date).days + 1
 
         # Split data
         if len(ts) > forecast_days:
@@ -36,7 +40,7 @@ if uploaded_file is not None:
         model_fit = model.fit()
 
         forecast = model_fit.forecast(steps=forecast_days)
-        forecast_index = pd.date_range(start=ts.index[-1] + pd.Timedelta(days=1), periods=forecast_days)
+        forecast_index = pd.date_range(start=start_date, periods=forecast_days)
 
         # Plot
         st.subheader("📊 Hasil Forecast")
@@ -46,11 +50,11 @@ if uploaded_file is not None:
         ax.legend()
         st.pyplot(fig)
 
-        # Tampilkan error
+        # Tampilkan error sebagai persentase
         if test is not None and len(test) == forecast_days:
             mae = mean_absolute_error(test, forecast)
-            rmse = np.sqrt(mean_squared_error(test, forecast))
-            st.markdown(f"**📉 MAE:** {mae:.2f} | **RMSE:** {rmse:.2f}")
+            mape = np.mean(np.abs((test - forecast) / test)) * 100
+            st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** {mape:.2f}%")
 
         # Tampilkan tabel forecast
         st.subheader("📋 Tabel Forecast")
