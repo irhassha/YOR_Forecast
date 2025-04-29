@@ -63,10 +63,16 @@ try:
             st.pyplot(fig)
 
             if test is not None and len(test) == forecast_days:
-                mae = mean_absolute_error(test, forecast)
-                nonzero_mask = test != 0
+                test.index = pd.to_datetime(test.index)
+                forecast_series = pd.Series(forecast.values, index=forecast_index)
+
+                aligned_test = test.reindex(forecast_series.index)
+                nonzero_mask = aligned_test != 0
+
+                mae = mean_absolute_error(aligned_test, forecast_series)
+
                 if nonzero_mask.sum() > 0:
-                    mape = np.mean(np.abs((test[nonzero_mask] - forecast[nonzero_mask]) / test[nonzero_mask])) * 100
+                    mape = np.mean(np.abs((aligned_test[nonzero_mask] - forecast_series[nonzero_mask]) / aligned_test[nonzero_mask])) * 100
                     st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** {mape:.2f}%**")
                 else:
                     st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** Tidak bisa dihitung (semua nilai aktual = 0)**")
