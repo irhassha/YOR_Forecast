@@ -86,9 +86,6 @@ try:
                 forecast_value = forecast_service_total[service] * service_day_percentage.loc[service, day] / 100
                 forecast_service_day.loc[service, f"DAY {day}"] = forecast_value
 
-        # Tambahkan total forecast per service sebagai kolom tambahan
-        forecast_service_day['TOTAL FORECAST'] = forecast_service_total
-
         forecast_service_day_percentage = forecast_service_day.div(forecast_service_day.sum(axis=1), axis=0) * 100
 
         st.dataframe(forecast_service_day_percentage.style.format("{:.1f}%"))
