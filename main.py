@@ -63,19 +63,20 @@ try:
             st.pyplot(fig)
 
             if test is not None and len(test) == forecast_days:
-                test.index = pd.to_datetime(test.index)
                 forecast_series = pd.Series(forecast.values, index=forecast_index)
+                test_aligned = test.reindex(forecast_series.index)
 
-                aligned_test = test.reindex(forecast_series.index)
-                nonzero_mask = aligned_test != 0
+                combined = pd.concat([test_aligned, forecast_series], axis=1).dropna()
+                test_clean, forecast_clean = combined.iloc[:, 0], combined.iloc[:, 1]
 
-                mae = mean_absolute_error(aligned_test, forecast_series)
-
-                if nonzero_mask.sum() > 0:
-                    mape = np.mean(np.abs((aligned_test[nonzero_mask] - forecast_series[nonzero_mask]) / aligned_test[nonzero_mask])) * 100
-                    st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** {mape:.2f}%**")
-                else:
-                    st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** Tidak bisa dihitung (semua nilai aktual = 0)**")
+                if not test_clean.empty:
+                    mae = mean_absolute_error(test_clean, forecast_clean)
+                    nonzero_mask = test_clean != 0
+                    if nonzero_mask.sum() > 0:
+                        mape = np.mean(np.abs((test_clean[nonzero_mask] - forecast_clean[nonzero_mask]) / test_clean[nonzero_mask])) * 100
+                        st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** {mape:.2f}%**")
+                    else:
+                        st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** Tidak bisa dihitung (semua nilai aktual = 0)**")
 
             st.subheader(f"📋 Tabel Forecast Container {label}")
             st.dataframe(pd.DataFrame({
