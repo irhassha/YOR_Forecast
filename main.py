@@ -23,7 +23,7 @@ def load_data_in():
 # ========================
 @st.cache_data
 def load_data_out():
-    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/IMPORT%20DATA%20FILTERED%202024.csv"
+    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/IMPORT%20DATA%20FILTER%202024.csv"
     df = pd.read_csv(url, delimiter=';')
     df['GATE OUT'] = pd.to_datetime(df['GATE OUT'], format='%d/%m/%Y %H:%M')
     return df
