@@ -89,8 +89,8 @@ try:
             }))
             
             st.subheader(f"📊 Average Receiving Trends by Service (per DAY category) - Container {label}")
-            if 'SERVICE' in df.columns and 'DAY' in df.columns:
-                service_day_actual = df.pivot_table(index='SERVICE', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
+            if 'SERVICE OUT' in df.columns and 'DAY' in df.columns:
+                service_day_actual = df.pivot_table(index='SERVICE OUT', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
                 service_total_actual = service_day_actual.sum(axis=1)
                 service_day_percentage = service_day_actual.div(service_total_actual, axis=0) * 100
                 st.dataframe(service_day_percentage.style.format("{:.1f}%"))
