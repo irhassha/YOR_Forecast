@@ -87,28 +87,16 @@ try:
                 'Tanggal': forecast_index,
                 'Forecast Jumlah Container': forecast.values
             }))
-
-            st.subheader(f"🔮 Forecasted Receiving Trends by Service (per DAY category) - Container {label}")
-            if 'SERVICE OUT' in df.columns and 'DAY' in df.columns:
-                service_day_actual = df.pivot_table(index='SERVICE OUT', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
+            
+            st.subheader(f"📊 Average Receiving Trends by Service (per DAY category) - Container {label}")
+            if 'SERVICE' in df.columns and 'DAY' in df.columns:
+                service_day_actual = df.pivot_table(index='SERVICE', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
                 service_total_actual = service_day_actual.sum(axis=1)
                 service_day_percentage = service_day_actual.div(service_total_actual, axis=0) * 100
-
-                forecast_total = forecast.sum()
-                service_share = service_total_actual / service_total_actual.sum()
-                forecast_service_total = service_share * forecast_total
-
-                forecast_service_day = pd.DataFrame()
-                for service in service_day_percentage.index:
-                    for day in service_day_percentage.columns:
-                        forecast_value = forecast_service_total[service] * service_day_percentage.loc[service, day] / 100
-                        forecast_service_day.loc[service, f"DAY {day}"] = forecast_value
-
-                forecast_service_day_percentage = forecast_service_day.div(forecast_service_day.sum(axis=1), axis=0) * 100
-
-                st.dataframe(forecast_service_day_percentage.style.format("{:.1f}%"))
+                st.dataframe(service_day_percentage.style.format("{:.1f}%"))
             else:
-                st.info("Kolom SERVICE atau DAY tidak ditemukan di dataset.")
+                 st.info("Kolom SERVICE atau DAY tidak ditemukan di dataset.")
+
 
 except Exception as e:
     st.error(f"Terjadi kesalahan saat membaca atau memproses file: {e}")
