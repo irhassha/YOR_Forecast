@@ -66,17 +66,21 @@ try:
                 forecast_series = pd.Series(forecast.values, index=forecast_index)
                 test_aligned = test.reindex(forecast_series.index)
 
-                combined = pd.concat([test_aligned, forecast_series], axis=1).dropna()
-                test_clean, forecast_clean = combined.iloc[:, 0], combined.iloc[:, 1]
+                combined = pd.concat([test_aligned, forecast_series], axis=1)
+                combined.columns = ['actual', 'forecast']
+                combined = combined.dropna()
 
-                if not test_clean.empty:
-                    mae = mean_absolute_error(test_clean, forecast_clean)
-                    nonzero_mask = test_clean != 0
+                if not combined.empty:
+                    mae = mean_absolute_error(combined['actual'], combined['forecast'])
+                    nonzero_mask = combined['actual'] != 0
                     if nonzero_mask.sum() > 0:
-                        mape = np.mean(np.abs((test_clean[nonzero_mask] - forecast_clean[nonzero_mask]) / test_clean[nonzero_mask])) * 100
+                        mape = np.mean(np.abs((combined['actual'][nonzero_mask] - combined['forecast'][nonzero_mask]) / combined['actual'][nonzero_mask])) * 100
                         st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** {mape:.2f}%**")
                     else:
                         st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** Tidak bisa dihitung (semua nilai aktual = 0)**")
+                else:
+                    st.warning("Tidak cukup data yang bisa dibandingkan untuk menghitung MAE dan MAPE.")
+
 
             st.subheader(f"📋 Tabel Forecast Container {label}")
             st.dataframe(pd.DataFrame({
