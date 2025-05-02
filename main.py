@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,24 +9,20 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="Container Forecast", layout="wide")
 st.title("📦 Forecast Jumlah Container Masuk dan Keluar")
 
-# ========================
-# Load Data Masuk
-# ========================
 @st.cache_data
 def load_data_in():
     url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%2024-25.csv"
     df = pd.read_csv(url, delimiter=';')
-    df['GATE IN'] = pd.to_datetime(df['GATE IN'], format='%d/%m/%Y %H:%M')
+    df['GATE IN'] = pd.to_datetime(df['GATE IN'], format='%d/%m/%Y %H:%M', errors='coerce')
+    df = df.dropna(subset=['GATE IN'])
     return df
 
-# ========================
-# Load Data Keluar
-# ========================
 @st.cache_data
 def load_data_out():
     url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/IMPORT%2024-25.csv"
     df = pd.read_csv(url, delimiter=';')
-    df['GATE OUT'] = pd.to_datetime(df['GATE OUT'], format='%d/%m/%Y %H:%M')
+    df['GATE OUT'] = pd.to_datetime(df['GATE OUT'], format='%d/%m/%Y %H:%M', errors='coerce')
+    df = df.dropna(subset=['GATE OUT'])
     return df
 
 try:
@@ -46,12 +43,11 @@ try:
             end_date = st.date_input(f"Tanggal akhir forecast ({label})", value=start_date + pd.Timedelta(days=30), key=f"end_{label}")
             forecast_days = (end_date - start_date).days + 1
 
-            train = ts[:-forecast_days] if len(ts) > forecast_days else ts
-            test = ts[-forecast_days:] if len(ts) > forecast_days else None
+            train = ts.copy()
+            test = ts[ts.index >= start_date]
 
             model = ARIMA(train, order=(5, 1, 2))
             model_fit = model.fit()
-
             forecast = model_fit.forecast(steps=forecast_days)
             forecast_index = pd.date_range(start=start_date, periods=forecast_days)
 
@@ -62,21 +58,24 @@ try:
             ax.legend()
             st.pyplot(fig)
 
-            if test is not None and len(test) == forecast_days:
+            if test is not None and len(test) > 0:
                 forecast_series = pd.Series(forecast.values, index=forecast_index)
                 test_aligned = test.reindex(forecast_series.index)
 
-                combined = pd.concat([test_aligned, forecast_series], axis=1).dropna()
-                test_clean, forecast_clean = combined.iloc[:, 0], combined.iloc[:, 1]
+                combined = pd.concat([test_aligned, forecast_series], axis=1)
+                combined.columns = ['actual', 'forecast']
+                combined = combined.dropna()
 
-                if not test_clean.empty:
-                    mae = mean_absolute_error(test_clean, forecast_clean)
-                    nonzero_mask = test_clean != 0
-                    if nonzero_mask.sum() > 0:
-                        mape = np.mean(np.abs((test_clean[nonzero_mask] - forecast_clean[nonzero_mask]) / test_clean[nonzero_mask])) * 100
+                if not combined.empty:
+                    mae = mean_absolute_error(combined['actual'], combined['forecast'])
+                    nonzero_mask = combined['actual'] != 0
+                    if nonzero_mask.any():
+                        mape = np.mean(np.abs((combined['actual'][nonzero_mask] - combined['forecast'][nonzero_mask]) / combined['actual'][nonzero_mask])) * 100
                         st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** {mape:.2f}%**")
                     else:
                         st.markdown(f"**📉 MAE:** {mae:.2f} | **MAPE:** Tidak bisa dihitung (semua nilai aktual = 0)**")
+                else:
+                    st.warning("❗ Tidak cukup data aktual untuk menghitung MAE dan MAPE.")
 
             st.subheader(f"📋 Tabel Forecast Container {label}")
             st.dataframe(pd.DataFrame({
@@ -84,27 +83,32 @@ try:
                 'Forecast Jumlah Container': forecast.values
             }))
 
-            st.subheader(f"🔮 Forecasted Receiving Trends by Service (per DAY category) - Container {label}")
-            if 'SERVICE' in df.columns and 'DAY' in df.columns:
-                service_day_actual = df.pivot_table(index='SERVICE', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
-                service_total_actual = service_day_actual.sum(axis=1)
-                service_day_percentage = service_day_actual.div(service_total_actual, axis=0) * 100
+            st.download_button(
+                label="📥 Download Forecast Excel",
+                data=pd.DataFrame({
+                    'Tanggal': forecast_index,
+                    'Forecast Jumlah Container': forecast.values
+                }).to_excel(index=False, engine='xlsxwriter'),
+                file_name=f"forecast_{label.lower()}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-                forecast_total = forecast.sum()
-                service_share = service_total_actual / service_total_actual.sum()
-                forecast_service_total = service_share * forecast_total
+            st.subheader(f"🔮 Rata-rata Tren Harian per Service - Container {label}")
+            if 'SERVICE OUT' in df.columns and 'DAY' in df.columns:
+                st.markdown("Pilih rentang waktu untuk melihat distribusi rata-rata service.")
+                filter_start = st.date_input(f"Tanggal awal sample ({label})", key=f"start_filter_{label}", value=ts.index.min())
+                filter_end = st.date_input(f"Tanggal akhir sample ({label})", key=f"end_filter_{label}", value=ts.index.max())
 
-                forecast_service_day = pd.DataFrame()
-                for service in service_day_percentage.index:
-                    for day in service_day_percentage.columns:
-                        forecast_value = forecast_service_total[service] * service_day_percentage.loc[service, day] / 100
-                        forecast_service_day.loc[service, f"DAY {day}"] = forecast_value
+                df_filtered = df[(df[gate_col].dt.date >= filter_start) & (df[gate_col].dt.date <= filter_end)]
 
-                forecast_service_day_percentage = forecast_service_day.div(forecast_service_day.sum(axis=1), axis=0) * 100
-
-                st.dataframe(forecast_service_day_percentage.style.format("{:.1f}%"))
+                if not df_filtered.empty:
+                    pivot_table = df_filtered.pivot_table(index='SERVICE OUT', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
+                    pivot_percentage = pivot_table.div(pivot_table.sum(axis=1), axis=0) * 100
+                    st.dataframe(pivot_percentage.style.format("{:.1f}%"))
+                else:
+                    st.warning("Tidak ada data dalam rentang tanggal yang dipilih.")
             else:
-                st.info("Kolom SERVICE atau DAY tidak ditemukan di dataset.")
+                st.info("Kolom SERVICE OUT atau DAY tidak tersedia di dataset.")
 
 except Exception as e:
     st.error(f"Terjadi kesalahan saat membaca atau memproses file: {e}")
