@@ -13,7 +13,7 @@ st.title("📦 Forecast Jumlah Container Masuk dan Keluar")
 # ========================
 @st.cache_data
 def load_data_in():
-    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%20DATA%202024.csv"
+    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%20DATA%202024-2025.csv"
     df = pd.read_csv(url, delimiter=';')
     df['GATE IN'] = pd.to_datetime(df['GATE IN'], format='%d/%m/%Y %H:%M')
     return df
@@ -23,7 +23,7 @@ def load_data_in():
 # ========================
 @st.cache_data
 def load_data_out():
-    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/IMPORT%20DATA%20FILTER%202024.csv"
+    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/IMPORT%20DATA%20FILTER%202024-2025.csv"
     df = pd.read_csv(url, delimiter=';')
     df['GATE OUT'] = pd.to_datetime(df['GATE OUT'], format='%d/%m/%Y %H:%M')
     return df
@@ -34,7 +34,7 @@ try:
 
     tab1, tab2 = st.tabs(["Container Masuk", "Container Keluar"])
 
-    for label, df, gate_col in [("Masuk", df_in, 'GATE IN'), ("Keluar", df_out, 'GATE OUT')]:
+    for label, df, gate_col, service_col in [("Masuk", df_in, 'GATE IN', 'SERVICE'), ("Keluar", df_out, 'GATE OUT', 'SERVICE OUT')]:
         with tab1 if label == "Masuk" else tab2:
             st.subheader(f"📅 Forecast Container {label}")
 
@@ -81,22 +81,32 @@ try:
                 else:
                     st.warning("Tidak cukup data yang bisa dibandingkan untuk menghitung MAE dan MAPE.")
 
-
             st.subheader(f"📋 Tabel Forecast Container {label}")
             st.dataframe(pd.DataFrame({
                 'Tanggal': forecast_index,
                 'Forecast Jumlah Container': forecast.values
             }))
-            
-            st.subheader(f"📊 Average Receiving Trends by Service (per DAY category) - Container {label}")
-            if 'SERVICE OUT' in df.columns and 'DAY' in df.columns:
-                service_day_actual = df.pivot_table(index='SERVICE OUT', columns='DAY', values=gate_col, aggfunc='count', fill_value=0)
-                service_total_actual = service_day_actual.sum(axis=1)
-                service_day_percentage = service_day_actual.div(service_total_actual, axis=0) * 100
-                st.dataframe(service_day_percentage.style.format("{:.1f}%"))
-            else:
-                 st.info("Kolom SERVICE atau DAY tidak ditemukan di dataset.")
 
+            st.subheader(f"📊 Average Receiving Trends by Service (per DAY category) - Container {label}")
+            if service_col in df.columns and 'DAY' in df.columns:
+                st.markdown(f"**Pilih rentang tanggal untuk menghitung average trend (Container {label})**")
+                trend_start = st.date_input(f"Tanggal mulai tren ({label})", value=ts.index.min().date(), key=f"trend_start_{label}")
+                trend_end = st.date_input(f"Tanggal akhir tren ({label})", value=ts.index.max().date(), key=f"trend_end_{label}")
+
+                df_filtered_trend = df[(df[gate_col].dt.date >= trend_start) & (df[gate_col].dt.date <= trend_end)]
+
+                if not df_filtered_trend.empty:
+                    service_day_actual = df_filtered_trend.pivot_table(
+                        index=service_col, columns='DAY', values=gate_col, aggfunc='count', fill_value=0
+                    )
+                    service_total_actual = service_day_actual.sum(axis=1)
+                    service_day_percentage = service_day_actual.div(service_total_actual, axis=0) * 100
+
+                    st.dataframe(service_day_percentage.style.format("{:.1f}%"))
+                else:
+                    st.info("Tidak ada data dalam rentang tanggal yang dipilih.")
+            else:
+                st.info("Kolom SERVICE atau DAY tidak ditemukan di dataset.")
 
 except Exception as e:
     st.error(f"Terjadi kesalahan saat membaca atau memproses file: {e}")
