@@ -12,17 +12,15 @@ st.title("📦 Forecast Jumlah Container Masuk dan Keluar")
 def load_data_in():
     url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%2024-25.csv"
     df = pd.read_csv(url, delimiter=';')
-    df['GATE IN'] = pd.to_datetime(df['GATE IN'], format='%d/%m/%Y %H:%M', errors='coerce')
-    df = df.dropna(subset=['GATE IN'])
-    return df
+    df['GATE IN'] = pd.to_datetime(df['GATE IN'], errors='coerce', dayfirst=True)
+    return df.dropna(subset=['GATE IN'])
 
 @st.cache_data
 def load_data_out():
     url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/IMPORT%2024-25.csv"
     df = pd.read_csv(url, delimiter=';')
-    df['GATE OUT'] = pd.to_datetime(df['GATE OUT'], format='%d/%m/%Y %H:%M', errors='coerce')
-    df = df.dropna(subset=['GATE OUT'])
-    return df
+    df['GATE OUT'] = pd.to_datetime(df['GATE OUT'], errors='coerce', dayfirst=True)
+    return df.dropna(subset=['GATE OUT'])
 
 try:
     df_in = load_data_in()
