@@ -14,7 +14,7 @@ st.title("📦 Forecast Jumlah Container Masuk dan Keluar")
 # ========================
 @st.cache_data
 def load_data_in():
-    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%20DATA%202024.csv"
+    url = "https://github.com/irhassha/YOR_Forecast/raw/refs/heads/main/EXPORT%2024-25.csv"
     df = pd.read_csv(url, delimiter=';', on_bad_lines='skip')
     df['GATE IN'] = pd.to_datetime(df['GATE IN'], errors='coerce', dayfirst=True)
     return df.dropna(subset=['GATE IN'])
